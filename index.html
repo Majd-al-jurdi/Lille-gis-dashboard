@@ -105,18 +105,25 @@
             height: 34px;
             text-align: center;
         }
+        .sentiment-badge {
+            padding: 3px 8px; border-radius: 3px; font-weight: bold; color: white; display: inline-block; font-size: 11px;
+        }
     </style>
 </head>
 
 <body>
     <div id="header" class="col-md-12">
-        <h1 class="text-center" style="margin-top: 15px; font-weight: bold;">Lille</h1>
+        <h1 class="text-center" style="margin-top: 15px; font-weight: bold;">Lille WebGIS - Sentiment Dashboard</h1>
     </div>
 
     <div id="side_panel" class="col-md-3">
         <h3 class="text-center">Comprendre les espaces de Lille</h3>
         <hr>
         
+        <h4 class="text-center" style="text-decoration: underline;">Nouveau Point Sentiment</h4>
+        <button id="toggleAddSentimentMode" class="form-control btn btn-info" style="margin-bottom: 5px; font-weight: bold;">➕ Activer le Mode Dessin</button>
+        <button id="btnExportGeoJSON" class="form-control btn btn-success" style="margin-bottom: 10px;">💾 Télécharger vos points (GeoJSON)</button>
+        <hr>
         <h4 class="text-center" style="text-decoration: underline;">Actions Rapides</h4>
         <div class="form-group" style="padding: 5px 0;">
             <label for="buffer-input">Distance du Buffer (mètres):</label>
@@ -138,6 +145,12 @@
             </datalist>
         </div>
         <hr>
+        
+        <h4><b>Points Sentiment Enregistrés</b></h4>
+        <div id="user-points-container" style="max-height: 200px; overflow-y: auto; background: rgba(255,255,255,0.5); padding: 5px; border-radius: 4px; margin-bottom: 15px;">
+            <p id="empty-sentiment-msg" class="text-center text-muted" style="font-size:12px; margin-top:5px;">Aucun point enregistré pour le moment.</p>
+        </div>
+        
         <div id="park-list-container"></div>
     </div>
 
@@ -350,15 +363,15 @@
         var userSentimentFeatureGroup = L.featureGroup().addTo(mymap);
 
         // Helper utility returning color styling corresponding to user sentiment selections
-        function getSentimentColor(feeling) {
+        function getSentimentEmoji(feeling) {
             switch (feeling) {
-                case 'Happy': return '#2ce679';
-                case 'Calm': return '#3498db';
-                case 'Neutral': return '#95a5a6';
-                case 'Sad': return '#f39c12';
+                case 'Happy': return '😊';
+                case 'Calm': return '😌';
+                case 'Neutral': return '😐';
+                case 'Sad': return '😒';
                 case 'Angry':
-                case 'Mad': return '#e74c3c';
-                default: return '#9b59b6';
+                case 'Mad': return '😡';
+                default: return '📍';      
             }
         }
 
@@ -414,19 +427,22 @@
                 trackedUserFeaturesList.push(pointFeatureSchema);
                 $("#empty-sentiment-msg").hide(); // Wipe text placeholders out
 
-                // 2. Render point on Map canvas as a custom-styled circle marker layer
+                // 2. Build a custom Leaflet HTML DivIcon hosting your emoji text character
+                var emojiIconMarker = L.divIcon({
+                    html: `<div style="font-size: 24px; line-height: 24px; text-shadow: 1px 1px 2px black;">${getSentimentEmoji(selectedFeeling)}</div>`,
+                    className: 'custom-emoji-marker', // Keeps the base container borderless and invisible
+                    iconSize: [24, 24],                // Sets specific element dimensional constraints
+                    iconAnchor: [12, 12]               // Anchors the absolute center of the emoji directly over the coordinate click path
+                });
+
+                // 3. Plot the native text marker directly onto your active sentiments group layer
                 var visualMarkerMarker = L.circleMarker([clickedLat, clickedLng], {
-                    radius: 8,
-                    color: '#ffffff',
-                    fillColor: getSentimentColor(selectedFeeling),
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.9
+                    icon:emojiIconmarker
                 }).addTo(userSentimentFeatureGroup);
 
                 visualMarkerMarker.bindPopup("<b>Sentiment Enregistré:</b> " + selectedFeeling + "<br><small>" + pointFeatureSchema.properties.timestamp + "</small>");
 
-                // 3. Append text element row node to sidebar overview tracker table box
+                // 4. Append text element row node to sidebar overview tracker table box
                 var sidebarRowItem = $("<div style='padding:5px; border-bottom:1px solid #ccc; font-size:12px;'></div>");
                 sidebarRowItem.append("📍 <b>" + selectedFeeling + "</b> (" + clickedLat.toFixed(3) + ", " + clickedLng.toFixed(3) + ")");
                 $("#user-points-container").append(sidebarRowItem);
