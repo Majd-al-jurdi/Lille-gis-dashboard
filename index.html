@@ -161,7 +161,7 @@
             }
         }
 
-        var geojsonLayer = new L.GeoJSON.AJAX('parksLille.geojson', {
+        var geojsonLayer = new L.GeoJSON.AJAX('data/parksLille.geojson', {
             style: function (feature) {
                 var typeAttr = feature.properties.types;
                 return {
