@@ -265,7 +265,7 @@
 
         var rawBackupGeoJSON = null; // Backup structure holding original dataset parameters safely
 
-        var geojsonLayer = new L.GeoJSON.AJAX('parksLille.geojson', {
+        var geojsonLayer = L.geoJSON(null, {
             style: function (feature) {
                 var typeAttr = feature.properties.types;
                 return {
@@ -310,6 +310,20 @@
         });
 
         geojsonLayer.addTo(mymap);
+        // NATIVE FETCH ENGINE API: Stream data reliably from the root directory path
+        fetch('parksLille.geojson')
+            .then(function(response) {
+                if (!response.ok) throw new Error("HTTP error " + response.status);
+                return response.json();
+            })
+            .then(function(data) {
+                rawBackupGeoJSON = data; // Cache fallback dataset clone
+                geojsonLayer.addData(data); // Append layers directly onto map
+                injectSvgPatterns(); // Inject cross hatch shapes
+            })
+            .catch(function(error) {
+                console.error("Failed to load geojson via Fetch API:", error);
+            });
 
         // Inject custom canvas textures immediately upon successful load completion hook
         geojsonLayer.on('data:loaded', function() {
