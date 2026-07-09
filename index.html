@@ -265,7 +265,7 @@
 
         var rawBackupGeoJSON = null; // Backup structure holding original dataset parameters safely
 
-        var geojsonLayer = new L.GeoJSON.AJAX('https://github.com/Majd-al-jurdi/Lille-gis-dashboard/blob/705eb11096f5a3ce599df5937d51432d8d59127a/parksLille.geojson', {
+        var geojsonLayer = new L.GeoJSON.AJAX('parksLille.geojson', {
             style: function (feature) {
                 var typeAttr = feature.properties.types;
                 return {
