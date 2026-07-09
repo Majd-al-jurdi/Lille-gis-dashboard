@@ -161,7 +161,7 @@
             }
         }
 
-        var geojsonLayer = new L.GeoJSON.AJAX('data/parksLille.geojson', {
+        var geojsonLayer = new L.GeoJSON.AJAX('https://raw.githubusercontent.com/Majd-al-jurdi/Lille-gis-dashboard/main/parksLille.geojson', {
             style: function (feature) {
                 var typeAttr = feature.properties.types;
                 return {
