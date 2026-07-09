@@ -144,7 +144,21 @@
         L.control.scale({ position: 'bottomleft', imperial: false }).addTo(mymap);
 
         var citadellemarker = L.marker([50.6409, 3.0446]).addTo(mymap);
-        citadellemarker.bindPopup("<h3><b>Citadelle de Lille</b></h3><hr><p>Citadelle de Lille is a pentagonal fortress built by Vauban in 1667.</p>");
+        citadellemarker.bindPopup("<h3><b>Citadelle de Lille</b></h3>
+                <hr>
+                <p>Citadelle de Lille is a pentagonal fortress built by Vauban in 1667.</p>
+                <div style="text-align: center; margin-top: 10px;">
+                <a href="https://fr.wikipedia.org/wiki/Citadelle_de_Lille" target="_blank" title="Ouvrir Wikipédia">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Lille_-_Citadelle_01.jpg/320px-Lille_-_Citadelle_01.jpg" 
+                         alt="Citadelle de Lille" 
+                         style="width: 100%; max-width: 220px; border-radius: 4px; border: 1px solid #ccc; cursor: pointer; transition: opacity 0.2s;"
+                         onmouseover="this.style.opacity='0.8'" 
+                         onmouseout="this.style.opacity='1'">
+                </a>
+                <p style="font-size: 11px; color: #555; margin-top: 6px; font-style: italic;">
+                    Consigne : Cliquez sur l'image pour plus d'informations.
+                </p>
+            </div>);
 
         $("#ZoomToCitadelle").on('click', function () {
             mymap.setView([50.6409, 3.0446], 17);
