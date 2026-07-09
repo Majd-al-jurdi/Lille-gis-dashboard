@@ -158,6 +158,14 @@
             <div><div class="legend-color-box" style="background:#e67e22; background-image: repeating-linear-gradient(90deg, transparent, transparent 2px, #fff 2px, #fff 4px);"></div>Ferme pédagogique</div>
             <div><div class="legend-color-box" style="background:#3498db; background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, #fff 2px, #fff 4px);"></div>Jardin d'Habitants</div>
             <div><div class="legend-color-box" style="background:#95a5a6;"></div>Autre / Non classé</div>
+            <hr style="margin:5px 0;">
+            <h4><b>Légende Sentiments</b></h4>
+            <div><span class="sentiment-badge" style="background:#2ce679;">😊 Happy</span></div>
+            <div><span class="sentiment-badge" style="background:#3498db;">😌 Calm</span></div>
+            <div><span class="sentiment-badge" style="background:#95a5a6;">😐 Neutral</span></div>
+            <div><span class="sentiment-badge" style="background:#f39c12;">😒 Sad</span></div>
+            <div><span class="sentiment-badge" style="background:#e74c3c;">😡 Angry / Mad</span></div>
+        </div>       
         </div>
 
         <div class="north-arrow-control">
@@ -329,6 +337,129 @@
         geojsonLayer.on('data:loaded', function() {
             rawBackupGeoJSON = geojsonLayer.toGeoJSON();
             injectSvgPatterns();
+        });
+
+        // =============================================================
+        // NEW FEATURE SECTION: INTERACTIVE GEODATA GENERATOR ENGINE
+        // =============================================================
+        
+        // This array securely holds all points created during the user session
+        var trackedUserFeaturesList = [];
+        
+        // FeatureGroup to track, display, and toggle user markings cleanly
+        var userSentimentFeatureGroup = L.featureGroup().addTo(mymap);
+
+        // Helper utility returning color styling corresponding to user sentiment selections
+        function getSentimentColor(feeling) {
+            switch (feeling) {
+                case 'Happy': return '#2ce679';
+                case 'Calm': return '#3498db';
+                case 'Neutral': return '#95a5a6';
+                case 'Sad': return '#f39c12';
+                case 'Angry':
+                case 'Mad': return '#e74c3c';
+                default: return '#9b59b6';
+            }
+        }
+
+        // Map Click Workflow interceptor
+        mymap.on('click', function (e) {
+            var clickedLat = e.latlng.lat;
+            var clickedLng = e.latlng.lng;
+
+            // Generate an active HTML popup body containing a dropdown menu selector input view
+            var formPopupContainer = $("<div></div>");
+            formPopupContainer.append("<h4><b>Quel est votre sentiment ici ?</b></h4><hr>");
+            formPopupContainer.append("<p style='font-size:11px; margin-bottom:5px;'><b>Coordonnées :</b> " + clickedLat.toFixed(4) + ", " + clickedLng.toFixed(4) + "</p>");
+            
+            var selectMenu = $("<select class='form-control input-sm' style='margin-bottom:10px;'></select>");
+            selectMenu.append("<option value='Happy'>😊 Happy</option>");
+            selectMenu.append("<option value='Calm'>😌 Calm</option>");
+            selectMenu.append("<option value='Neutral'>😐 Neutral</option>");
+            selectMenu.append("<option value='Sad'>😒 Sad</option>");
+            selectMenu.append("<option value='Angry'>😡 Angry</option>");
+            selectMenu.append("<option value='Mad'>👿 Mad</option>");
+            
+            var submitBtn = $("<button class='btn btn-warning btn-xs btn-block'>Enregistrer la position</button>");
+            
+            formPopupContainer.append(selectMenu).append(submitBtn);
+
+            // Open temporary input node popup view window straight at cursor location coordinates
+            var inputPopup = L.popup()
+                .setLatLng(e.latlng)
+                .setContent(formPopupContainer[0])
+                .openOn(mymap);
+
+            // Handle submission click event inputs
+            submitBtn.on('click', function () {
+                var selectedFeeling = selectMenu.val();
+                mymap.closePopup(inputPopup); // Wipes out form overlay layout smoothly
+
+                // 1. Build a valid GeoJSON Feature model payload format object envelope
+                var pointFeatureSchema = {
+                    type: "Feature",
+                    properties: {
+                        feeling: selectedFeeling,
+                        timestamp: new Date().toISOString(),
+                        latitude: clickedLat,
+                        longitude: clickedLng
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [clickedLng, clickedLat] // GeoJSON specs strictly enforce Longitude first!
+                    }
+                };
+
+                // Store point directly inside background system memory list
+                trackedUserFeaturesList.push(pointFeatureSchema);
+                $("#empty-sentiment-msg").hide(); // Wipe text placeholders out
+
+                // 2. Render point on Map canvas as a custom-styled circle marker layer
+                var visualMarkerMarker = L.circleMarker([clickedLat, clickedLng], {
+                    radius: 8,
+                    color: '#ffffff',
+                    fillColor: getSentimentColor(selectedFeeling),
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                }).addTo(userSentimentFeatureGroup);
+
+                visualMarkerMarker.bindPopup("<b>Sentiment Enregistré:</b> " + selectedFeeling + "<br><small>" + pointFeatureSchema.properties.timestamp + "</small>");
+
+                // 3. Append text element row node to sidebar overview tracker table box
+                var sidebarRowItem = $("<div style='padding:5px; border-bottom:1px solid #ccc; font-size:12px;'></div>");
+                sidebarRowItem.append("📍 <b>" + selectedFeeling + "</b> (" + clickedLat.toFixed(3) + ", " + clickedLng.toFixed(3) + ")");
+                $("#user-points-container").append(sidebarRowItem);
+            });
+        });
+
+        // 4. Download Trigger: Compiles memory data collection array and triggers direct download to local storage
+        $("#btnExportGeoJSON").on('click', function () {
+            if (trackedUserFeaturesList.length === 0) {
+                alert("Veuillez d'abord créer des points sentiments en cliquant sur la carte !");
+                return;
+            }
+
+            // Package array blocks directly inside a standard GeoJSON FeatureCollection framework
+            var completeExportGeoJSONPayload = {
+                type: "FeatureCollection",
+                features: trackedUserFeaturesList
+            };
+
+            // Transform raw javascript object to printable formatted text data
+            var textDataStringData = JSON.stringify(completeExportGeoJSONPayload, null, 2);
+            
+            // Build absolute binary blob resource pointer payload layout channel
+            var blobPayloadChannel = new Blob([textDataStringData], { type: "application/json" });
+            var temporaryDownloadAnchorElement = document.createElement('a');
+            
+            temporaryDownloadAnchorElement.download = 'mes_sentiments_lille.geojson';
+            temporaryDownloadAnchorElement.href = window.URL.createObjectURL(blobPayloadChannel);
+            temporaryDownloadAnchorElement.style.display = 'none';
+            
+            document.body.appendChild(temporaryDownloadAnchorElement);
+            temporaryDownloadAnchorElement.click(); // Autotrigger browser file download execution pipeline smoothly
+            document.body.removeChild(temporaryDownloadAnchorElement);
         });
 
         // Balanced Sync Filter Logic Engine
