@@ -1,0 +1,682 @@
+<!-- /*Test 1 */
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WebMap 101</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.0.1/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+    <script src="resources/leaflet-ajax-gh-pages/dist/leaflet.ajax.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-geometryutil@0.9.3/src/leaflet.geometryutil.min.js"></script>
+    
+    <style>
+        #header {
+            height: 75px;
+            background-color: rgb(15, 121, 156);
+        }
+
+        #mapdiv {
+            height: 850px;
+            background-color: salmon;
+        }
+
+        #side_panel {
+            height: 850px;
+            background-color: rgb(174, 188, 223);
+            overflow-y: auto;
+            padding-bottom: 20px;
+        }
+
+        #footer {
+            height: 75px;
+            background-color: darkgrey;
+        }
+
+        .hatch-cemetery {
+            stroke: #7f8c8d !important;
+            stroke-width: 3px;
+            stroke-dasharray: 4, 4;
+        }
+
+        .hatch-green {
+            stroke: #27ae60 !important;
+            stroke-width: 3px;
+            stroke-dasharray: 10, 5;
+        }
+
+        .hatch-farm {
+            stroke: #d35400 !important;
+            stroke-width: 4px;
+            stroke-dasharray: 2, 6;
+        }
+
+        .hatch-jardin {
+            stroke: #2980b9 !important;
+            stroke-width: 3px;
+            stroke-dasharray: 1, 4;
+        }
+    </style>
+</head>
+
+<body>
+    <svg style="display:none;">
+        <defs>
+            <pattern id="pattern-cemetery" width="10" height="10" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="0" y2="10" stroke="#7f8c8d" stroke-width="3" />
+            </pattern>
+            <pattern id="pattern-green" width="12" height="12" patternTransform="rotate(135 0 0)" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="0" y2="12" stroke="#27ae60" stroke-width="3" />
+            </pattern>
+            <pattern id="pattern-farm" width="20" height="20" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="0" y2="20" stroke="#d35400" stroke-width="4" />
+            </pattern>
+            <pattern id="pattern-jardin" width="8" height="8" patternTransform="rotate(90 0 0)" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="0" y2="8" stroke="#2980b9" stroke-width="2" />
+            </pattern>
+        </defs>
+    </svg>
+
+    <div id="header" class="col-md-12">
+        <h1 class="text-center" style="color: white; font-weight: bold;">Lille</h1>
+    </div>
+
+    <div id="side_panel" class="col-md-3">
+        <h1 class="text-center">Attractions</h1>
+        <hr>
+        <h4 class="text-center" style="text-decoration: underline;">Actions Rapides</h4>
+        <div class="form-group" style="padding: 5px 0;">
+            <label for="buffer-input">Distance du Buffer (mètres):</label>
+            <input type="number" id="buffer-input" class="form-control" value="100" min="1" max="5000" placeholder="Entrez la distance...">
+        </div>
+        <button id="btnBuffer" class="form-control btn-warning">Générer le Buffer</button>
+        <button id="ZoomToCitadelle" class="form-control btn-primary" style="margin-top: 5px;">Zoomer sur la Citadelle de Lille</button>
+        <hr>
+
+        <div style="padding: 10px 0;">
+            <label for="park-search">Filtrer les zones vertes par type:</label>
+            <input list="park-types" id="park-search" class="form-control" placeholder="Type to search/select...">
+            <datalist id="park-types">
+                <option value="Toutes les zones vertes">Toutes les zones vertes</option>
+                <option value="CimetiĂ¨re">Cimetière</option>
+                <option value="Espace vert public">Espace vert public</option>
+                <option value="Ferme pĂ©dagogique">Ferme pédagogique</option>
+                <option value="Jardin d'Habitants">Jardin d'Habitants</option>
+            </datalist>
+        </div>
+        <hr>
+        <div id="park-list-container"></div>
+    </div>
+
+    <div id="mapdiv" class="col-md-9"></div>
+
+    <div id="footer" class="col-md-12">
+        <h4 id="map_coords" class="text-center">Latitude: 50.6333 Longitude: 3.06667 Zoom Level: 14</h4>
+        <h4 class="text-center">&copy; 2026 <a href="http://google.com">Smart & Resilient Cities Research</a></h4>
+    </div>
+
+    <script>
+        var mymap = L.map('mapdiv');
+        mymap.setView([50.6333, 3.06667], 14);
+
+        var backgroundLayer = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png');
+        mymap.addLayer(backgroundLayer);
+
+        var citadellemarker = L.marker([50.6409, 3.0446]).addTo(mymap);
+        citadellemarker.bindPopup("<h3><b>Citadelle de Lille</b></h3><hr><p>Citadelle de Lille is a pentagonal fortress built by Vauban in 1667.</p> <i style='color: red;'>Click on the image below for more information:</i><a href='https://en.wikipedia.org/wiki/Citadelle_de_Lille' target='_blank'><img src='https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Citadelle_vue_du_ciel.jpg/250px-Citadelle_vue_du_ciel.jpg' alt='Citadelle de Lille' width='250'/></a>").openPopup();
+
+        $("#ZoomToCitadelle").on('click', function () {
+            mymap.setView([50.6409, 3.0446], 17);
+        });
+
+        mymap.on('move', function () {
+            var center = mymap.getCenter();
+            var zoom = mymap.getZoom();
+            $("#map_coords").html("Latitude: " + center.lat.toFixed(5) + " Longitude: " + center.lng.toFixed(5) + " Zoom Level: " + zoom);
+        });
+
+        function getParkColor(typeValue) {
+            if (!typeValue) return '#95a5a6';
+            switch (typeValue.trim()) {
+                case 'CimetiĂ¨re': return '#7f8c8d';
+                case 'Espace vert public': return '#2ecc71';
+                case 'Ferme pĂ©dagogique': return '#e67e22';
+                case 'Jardin d\'Habitants': return '#3498db';
+                default: return '#95a5a6';
+            }
+        }
+
+        function getParkPattern(typeValue) {
+            if (!typeValue) return '';
+            switch (typeValue.trim()) {
+                case 'CimetiĂ¨re': return 'url(#pattern-cemetery)';
+                case 'Espace vert public': return 'url(#pattern-green)';
+                case 'Ferme pĂ©dagogique': return 'url(#pattern-farm)';
+                case 'Jardin d\'Habitants': return 'url(#pattern-jardin)';
+                default: return '';
+            }
+        }
+
+        var geojsonLayer = new L.GeoJSON.AJAX('parksLille.geojson', {
+            style: function (feature) {
+                var typeAttr = feature.properties.types;
+                return {
+                    color: getParkColor(typeAttr),
+                    fillColor: getParkPattern(typeAttr),
+                    weight: 3,
+                    opacity: 0.9,
+                    fillOpacity: 0.4
+                };
+            },
+            onEachFeature: function (feature, layer) {
+                var infoHtml = "<h4>" + (feature.properties.nom || "Espace Vert") + "</h4><hr>";
+                if (feature.properties.quartier) infoHtml += "<b>Quartier:</b> " + feature.properties.quartier + "<br>";
+                if (feature.properties.types) infoHtml += "<b>Type:</b> " + feature.properties.types + "<br>";
+                if (feature.properties["surface"]) infoHtml += "<b>Surface:</b> " + feature.properties["surface"].toFixed(0) + " m²<br>";
+                if (feature.properties["Ouverture au public"]) infoHtml += "<b>Ouverture au public:</b> " + feature.properties["Ouverture au public"] + "<br>";
+
+                var popupBtn = $("<button class='btn btn-success btn-xs btn-block' style='margin-top: 10px;'>🔍 Zoomer sur cet espace</button>");
+                popupBtn.on('click', function () {
+                    if (typeof layer.getBounds === 'function') {
+                        mymap.setView(layer.getBounds().getCenter(), 17);
+                    }
+                });
+
+                var popupContainer = $("<div></div>").append(infoHtml).append(popupBtn);
+                layer.bindPopup(popupContainer[0]);
+
+                var typeAttr = (feature.properties.types || "").trim();
+                var itemContainer = $("<div class='park-item-entry' data-type='" + typeAttr + "'></div>").append(infoHtml);
+                var sidebarBtn = $("<button class='form-control btn-success'>Zoomer sur cet espace</button>");
+
+                sidebarBtn.on('click', function () {
+                    if (typeof layer.getBounds === 'function') {
+                        mymap.setView(layer.getBounds().getCenter(), 17);
+                        layer.openPopup();
+                    }
+                });
+
+                itemContainer.append(sidebarBtn).append("<hr>");
+                $("#park-list-container").append(itemContainer);
+            }
+        });
+
+        geojsonLayer.addTo(mymap);
+
+        // Filter Search functionality (Updated to support display aliases)
+        $("#park-search").on('input', function () {
+            var selectedValue = $(this).val().trim();
+
+            var targetOption = $("#park-types option").filter(function () {
+                return $(this).text() === selectedValue;
+            });
+
+            var filterKey = targetOption.val() ? targetOption.val().trim() : selectedValue;
+
+            $(".park-item-entry").each(function () {
+                var itemType = $(this).attr('data-type');
+                if (filterKey === "Toutes les zones vertes" || selectedValue === "") {
+                    $(this).show();
+                } else if (itemType === filterKey || itemType === selectedValue) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        });
+
+        // Dynamic Turf.js Buffer Processing Engine
+        var bufferLayer = null; 
+        
+        $("#btnBuffer").on('click', function () {
+            // Remove previous buffer overlay if active
+            if (bufferLayer) {
+                mymap.removeLayer(bufferLayer);
+                bufferLayer = null;
+            }
+
+            if ($(this).text() === "Générer le Buffer") {
+                var distanceVal = parseFloat($("#buffer-input").val());
+
+                if (isNaN(distanceVal) || distanceVal <= 0) {
+                    alert("Veuillez entrer une distance de buffer valide (supérieure à 0).");
+                    return;
+                }
+
+                var originalGeoJSON = geojsonLayer.toGeoJSON();
+
+                if (!originalGeoJSON || !originalGeoJSON.features || originalGeoJSON.features.length === 0) {
+                    alert("Les données des parcs ne sont pas encore complètement chargées. Réessayez.");
+                    return;
+                }
+
+                // Compute geographic calculation envelope matching user parameters
+                var bufferedGeoJSON = turf.buffer(originalGeoJSON, distanceVal, { units: 'meters' });
+
+                bufferLayer = L.geoJSON(bufferedGeoJSON, {
+                    style: {
+                        color: '#2980b9',
+                        fillColor: '#3498db',
+                        weight: 2,
+                        opacity: 0.7,
+                        fillOpacity: 0.2
+                    }
+                }).addTo(mymap);
+
+                mymap.fitBounds(bufferLayer.getBounds());
+
+                $(this).text("Supprimer le Buffer");
+                $(this).removeClass("btn-warning").addClass("btn-danger");
+            } else {
+                $(this).text("Générer le Buffer");
+                $(this).removeClass("btn-danger").addClass("btn-warning");
+            }
+        });
+    </script>
+</body>
+
+</html>*/ -->
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WebMap 101 - Lille Dashboard</title>
+    
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.0.2/Control.FullScreen.css" />
+    
+    <script src="https://unpkg.com/leaflet@1.0.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.0.2/Control.FullScreen.js"></script>
+    <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+    <script src="resources/leaflet-ajax-gh-pages/dist/leaflet.ajax.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-geometryutil@0.9.3/src/leaflet.geometryutil.min.js"></script>
+    
+    <style>
+        #header {
+            height: 75px;
+            background-color: rgb(15, 121, 156);
+            color: white;
+        }
+
+        #mapdiv {
+            height: 850px;
+            background-color: #e5e9f0;
+        }
+
+        #side_panel {
+            height: 850px;
+            background-color: rgb(174, 188, 223);
+            overflow-y: auto;
+            padding-bottom: 20px;
+        }
+
+        #footer {
+            height: 75px;
+            background-color: darkgrey;
+        }
+
+        /* Collapsible Table of Contents Container UI */
+        .toc-panel {
+            position: absolute;
+            top: 10px;
+            right: 50px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+            max-width: 250px;
+            font-family: Arial, sans-serif;
+        }
+        .toc-header {
+            font-weight: bold;
+            cursor: pointer;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ccc;
+            user-select: none;
+        }
+        .toc-content {
+            margin-top: 8px;
+        }
+
+        /* Map Legend Dashboard Viewport */
+        .map-legend {
+            position: absolute;
+            bottom: 30px;
+            right: 10px;
+            z-index: 999;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 18px;
+        }
+        .legend-color-box {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.7;
+            border: 1px solid #555;
+        }
+
+        /* Compass Card North Arrow Panel */
+        .north-arrow-control {
+            position: absolute;
+            top: 90px;
+            left: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 5px;
+            border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+            width: 34px;
+            height: 34px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="header" class="col-md-12">
+        <h1 class="text-center" style="margin-top: 15px; font-weight: bold;">Lille</h1>
+    </div>
+
+    <div id="side_panel" class="col-md-3">
+        <h3 class="text-center">Comprendre les espaces de Lille</h3>
+        <hr>
+        
+        <h4 class="text-center" style="text-decoration: underline;">Actions Rapides</h4>
+        <div class="form-group" style="padding: 5px 0;">
+            <label for="buffer-input">Distance du Buffer (mètres):</label>
+            <input type="number" id="buffer-input" class="form-control" value="100" min="1" max="5000" placeholder="Entrez la distance...">
+        </div>
+        <button id="btnBuffer" class="form-control btn btn-warning">Générer le Buffer</button>
+        <button id="ZoomToCitadelle" class="form-control btn btn-primary" style="margin-top: 5px;">Zoomer sur la Citadelle de Lille</button>
+        <hr>
+
+        <div style="padding: 10px 0;">
+            <label for="park-search">Filtrer les zones vertes par type:</label>
+            <input list="park-types" id="park-search" class="form-control" placeholder="Type to search/select...">
+            <datalist id="park-types">
+                <option value="Toutes les zones vertes">Toutes les zones vertes</option>
+                <option value="CimetiĂ¨re">Cimetière</option>
+                <option value="Espace vert public">Espace vert public</option>
+                <option value="Ferme pĂ©dagogique">Ferme pédagogique</option>
+                <option value="Jardin d'Habitants">Jardin d'Habitants</option>
+            </datalist>
+        </div>
+        <hr>
+        <div id="park-list-container"></div>
+    </div>
+
+    <div id="mapdiv" class="col-md-9" style="position: relative;">
+        <div class="toc-panel">
+            <div class="toc-header" onclick="toggleTOC()">Couches Cartographiques <span id="toc-toggle-icon" style="float:right;">▼</span></div>
+            <div class="toc-content" id="toc-items">
+                <div class="checkbox"><label><input type="checkbox" id="layer-osm" checked> Carte de base (OSM)</label></div>
+                <div class="checkbox"><label><input type="checkbox" id="layer-parks" checked> Espaces Verts de Lille</label></div>
+                <div class="checkbox"><label><input type="checkbox" id="layer-citadelle" checked> Citadelle de Lille (Point)</label></div>
+            </div>
+        </div>
+
+        <div class="map-legend">
+            <h4><b>Légende</b></h4>
+            <div><div class="legend-color-box" style="background:#7f8c8d; background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, #fff 2px, #fff 4px);"></div>Cimetière</div>
+            <div><div class="legend-color-box" style="background:#2ecc71; background-image: repeating-linear-gradient(-45deg, transparent, transparent 2px, #fff 2px, #fff 4px);"></div>Espace vert public</div>
+            <div><div class="legend-color-box" style="background:#e67e22; background-image: repeating-linear-gradient(90deg, transparent, transparent 2px, #fff 2px, #fff 4px);"></div>Ferme pédagogique</div>
+            <div><div class="legend-color-box" style="background:#3498db; background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, #fff 2px, #fff 4px);"></div>Jardin d'Habitants</div>
+            <div><div class="legend-color-box" style="background:#95a5a6;"></div>Autre / Non classé</div>
+        </div>
+
+        <div class="north-arrow-control">
+            <span style="font-weight:bold; font-size:16px; color:#c0392b; display:block; margin-top:-2px;">▲</span>
+            <span style="font-size:10px; font-weight:bold; display:block; margin-top:-4px;">N</span>
+        </div>
+    </div>
+
+    <div id="footer" class="col-md-12">
+        <h4 id="map_coords" class="text-center" style="margin-top: 15px;">Latitude: 50.6333 Longitude: 3.06667 Zoom Level: 14</h4>
+        <h4 class="text-center" style="font-size:11px;">&copy; 2026 Smart & Resilient Cities Research</h4>
+    </div>
+
+    <script>
+        // Initialize Map Engine and configure Fullscreen plugin parameters
+        var mymap = L.map('mapdiv', {
+            fullscreenControl: true,
+            fullscreenControlOptions: { position: 'topleft' }
+        });
+        mymap.setView([50.6333, 3.06667], 14);
+
+        var backgroundLayer = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png').addTo(mymap);
+        L.control.scale({ position: 'bottomleft', imperial: false }).addTo(mymap);
+
+        var citadellemarker = L.marker([50.6409, 3.0446]).addTo(mymap);
+        citadellemarker.bindPopup("<h3><b>Citadelle de Lille</b></h3><hr><p>Citadelle de Lille is a pentagonal fortress built by Vauban in 1667.</p>");
+
+        $("#ZoomToCitadelle").on('click', function () {
+            mymap.setView([50.6409, 3.0446], 17);
+        });
+
+        mymap.on('move', function () {
+            var center = mymap.getCenter();
+            var zoom = mymap.getZoom();
+            $("#map_coords").html("Latitude: " + center.lat.toFixed(5) + " Longitude: " + center.lng.toFixed(5) + " Zoom Level: " + zoom);
+        });
+
+        // Table Of Contents (TOC) Pane UI Visibility Toggle
+        function toggleTOC() {
+            var items = $("#toc-items");
+            var icon = $("#toc-toggle-icon");
+            if (items.is(":visible")) {
+                items.slideUp();
+                icon.text("▲");
+            } else {
+                items.slideDown();
+                icon.text("▼");
+            }
+        }
+
+        $("#layer-osm").on('change', function() { this.checked ? mymap.addLayer(backgroundLayer) : mymap.removeLayer(backgroundLayer); });
+        $("#layer-citadelle").on('change', function() { this.checked ? mymap.addLayer(citadellemarker) : mymap.removeLayer(citadellemarker); });
+        $("#layer-parks").on('change', function() { this.checked ? mymap.addLayer(geojsonLayer) : mymap.removeLayer(geojsonLayer); });
+
+        // Symbology Value Parsing Color Lookup Map Array
+        function getParkColor(typeValue) {
+            if (!typeValue) return '#95a5a6';
+            switch (typeValue.trim()) {
+                case 'CimetiĂ¨re': return '#7f8c8d';
+                case 'Espace vert public': return '#2ecc71';
+                case 'Ferme pĂ©dagogique': return '#e67e22';
+                case 'Jardin d\'Habitants': return '#3498db';
+                default: return '#95a5a6';
+            }
+        }
+
+        // Returns url reference id values mapping to the newly injected SVG patterns block code
+        function getParkPattern(typeValue) {
+            if (!typeValue) return '';
+            switch (typeValue.trim()) {
+                case 'CimetiĂ¨re': return 'url(#pattern-cemetery)';
+                case 'Espace vert public': return 'url(#pattern-green)';
+                case 'Ferme pĂ©dagogique': return 'url(#pattern-farm)';
+                case 'Jardin d\'Habitants': return 'url(#pattern-jardin)';
+                default: return '';
+            }
+        }
+
+        // REVOLUTIONARY FIX: Grabs Leaflet's actual dynamic map canvas root and builds the pattern tags INSIDE it!
+        function injectSvgPatterns() {
+            var svgCanvas = mymap.getPanes().overlayPane.querySelector('svg');
+            if (!svgCanvas) return;
+
+            var defs = svgCanvas.querySelector('defs');
+            if (!defs) {
+                defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                svgCanvas.insertBefore(defs, svgCanvas.firstChild);
+            }
+
+            defs.innerHTML = `
+                <pattern id="pattern-cemetery" width="10" height="10" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+                    <line x1="0" y1="0" x2="0" y2="10" stroke="#7f8c8d" stroke-width="3" />
+                </pattern>
+                <pattern id="pattern-green" width="12" height="12" patternTransform="rotate(135)" patternUnits="userSpaceOnUse">
+                    <line x1="0" y1="0" x2="0" y2="12" stroke="#27ae60" stroke-width="3" />
+                </pattern>
+                <pattern id="pattern-farm" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <line x1="0" y1="0" x2="0" y2="20" stroke="#d35400" stroke-width="4" />
+                </pattern>
+                <pattern id="pattern-jardin" width="8" height="8" patternTransform="rotate(90)" patternUnits="userSpaceOnUse">
+                    <line x1="0" y1="0" x2="0" y2="8" stroke="#2980b9" stroke-width="2" />
+                </pattern>
+            `;
+        }
+
+        var rawBackupGeoJSON = null; // Backup structure holding original dataset parameters safely
+
+        var geojsonLayer = new L.GeoJSON.AJAX('parksLille.geojson', {
+            style: function (feature) {
+                var typeAttr = feature.properties.types;
+                return {
+                    color: getParkColor(typeAttr),
+                    fillColor: getParkPattern(typeAttr),
+                    weight: 3,
+                    opacity: 0.9,
+                    fillOpacity: 0.6
+                };
+            },
+            onEachFeature: function (feature, layer) {
+                var infoHtml = "<h4>" + (feature.properties.nom || "Espace Vert") + "</h4><hr>";
+                if (feature.properties.quartier) infoHtml += "<b>Quartier:</b> " + feature.properties.quartier + "<br>";
+                if (feature.properties.types) infoHtml += "<b>Type:</b> " + feature.properties.types + "<br>";
+                if (feature.properties["surface"]) infoHtml += "<b>Surface:</b> " + feature.properties["surface"].toFixed(0) + " m²<br>";
+                if (feature.properties["Ouverture au public"]) infoHtml += "<b>Ouverture au public:</b> " + feature.properties["Ouverture au public"] + "<br>";
+
+                var popupBtn = $("<button class='btn btn-success btn-xs btn-block' style='margin-top: 10px;'>🔍 Zoomer sur cet espace</button>");
+                popupBtn.on('click', function () {
+                    if (typeof layer.getBounds === 'function') {
+                        mymap.setView(layer.getBounds().getCenter(), 17);
+                    }
+                });
+
+                var popupContainer = $("<div></div>").append(infoHtml).append(popupBtn);
+                layer.bindPopup(popupContainer[0]);
+
+                var typeAttr = (feature.properties.types || "").trim();
+                var itemContainer = $("<div class='park-item-entry' data-type='" + typeAttr + "'></div>").append(infoHtml);
+                var sidebarBtn = $("<button class='form-control btn-success'>Zoomer sur cet espace</button>");
+
+                sidebarBtn.on('click', function () {
+                    if (typeof layer.getBounds === 'function') {
+                        mymap.setView(layer.getBounds().getCenter(), 17);
+                        layer.openPopup();
+                    }
+                });
+
+                itemContainer.append(sidebarBtn).append("<hr>");
+                $("#park-list-container").append(itemContainer);
+            }
+        });
+
+        geojsonLayer.addTo(mymap);
+
+        // Inject custom canvas textures immediately upon successful load completion hook
+        geojsonLayer.on('data:loaded', function() {
+            rawBackupGeoJSON = geojsonLayer.toGeoJSON();
+            injectSvgPatterns();
+        });
+
+        // Balanced Sync Filter Logic Engine
+        $("#park-search").on('input', function () {
+            var selectedValue = $(this).val().trim();
+            var targetOption = $("#park-types option").filter(function () {
+                return $(this).text() === selectedValue;
+            });
+            var filterKey = targetOption.val() ? targetOption.val().trim() : selectedValue;
+
+            $(".park-item-entry").each(function () {
+                var itemType = $(this).attr('data-type');
+                if (filterKey === "Toutes les zones vertes" || selectedValue === "") {
+                    $(this).show();
+                } else if (itemType === filterKey || itemType === selectedValue) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+
+            if (!rawBackupGeoJSON) return;
+            
+            geojsonLayer.clearLayers();
+
+            if (filterKey === "Toutes les zones vertes" || selectedValue === "") {
+                geojsonLayer.addData(rawBackupGeoJSON);
+            } else {
+                var filteredFeatures = rawBackupGeoJSON.features.filter(function(feat) {
+                    var fType = (feat.properties.types || "").trim();
+                    return fType === filterKey || fType === selectedValue;
+                });
+                var filteredGeoJSONCollection = { type: "FeatureCollection", features: filteredFeatures };
+                geojsonLayer.addData(filteredGeoJSONCollection);
+            }
+            
+            // Re-inject definitions layer every time map layers rebuild
+            injectSvgPatterns();
+        });
+
+        // User-Defined Dynamic Turf.js Spatial Analysis Buffer Routine
+        var bufferLayer = null;
+        
+        $("#btnBuffer").on('click', function () {
+            if (bufferLayer) {
+                mymap.removeLayer(bufferLayer);
+                bufferLayer = null;
+            }
+
+            if ($(this).text() === "Générer le Buffer") {
+                var distanceVal = parseFloat($("#buffer-input").val());
+
+                if (isNaN(distanceVal) || distanceVal <= 0) {
+                    alert("Veuillez entrer une distance de buffer valide (supérieure à 0).");
+                    return;
+                }
+
+                var originalGeoJSON = geojsonLayer.toGeoJSON();
+                if (!originalGeoJSON || !originalGeoJSON.features || originalGeoJSON.features.length === 0) {
+                    alert("Les données des parcs ne sont pas encore complètement chargées. Réessayez.");
+                    return;
+                }
+
+                var bufferedGeoJSON = turf.buffer(originalGeoJSON, distanceVal, { units: 'meters' });
+
+                bufferLayer = L.geoJSON(bufferedGeoJSON, {
+                    style: {
+                        color: '#2980b9',
+                        fillColor: '#3498db',
+                        weight: 2,
+                        opacity: 0.7,
+                        fillOpacity: 0.2
+                    }
+                }).addTo(mymap);
+
+                mymap.fitBounds(bufferLayer.getBounds());
+                $(this).text("Supprimer le Buffer").removeClass("btn-warning").addClass("btn-danger");
+            } else {
+                $(this).text("Générer le Buffer").removeClass("btn-danger").addClass("btn-warning");
+            }
+        });
+    </script>
+</body>
+
+</html>
