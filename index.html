@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>WebMap 101 - Lille Dashboard</title>
+    <title>WebMap 101 - Lille Interactive Sentiment Dashboard</title>
     
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.1/dist/leaflet.css" />
@@ -18,93 +18,32 @@
     <script src="https://cdn.jsdelivr.net/npm/leaflet-geometryutil@0.9.3/src/leaflet.geometryutil.min.js"></script>
     
     <style>
-        /* =========================================================================
-           DASHBOARD COORD DIMENSIONS AND VIEWPORT DISPLAY STYLES
-           ========================================================================= */
-        #header {
-            height: 75px;
-            background-color: rgb(15, 121, 156);
-            color: white;
-        }
+        #header { height: 75px; background-color: rgb(15, 121, 156); color: white; }
+        #mapdiv { height: 850px; background-color: #e5e9f0; transition: cursor 0.2s; }
+        #side_panel { height: 850px; background-color: rgb(174, 188, 223); overflow-y: auto; padding-bottom: 20px; }
+        #footer { height: 75px; background-color: darkgrey; }
 
-        #mapdiv {
-            height: 850px;
-            background-color: #e5e9f0;
-        }
-
-        #side_panel {
-            height: 850px;
-            background-color: rgb(174, 188, 223);
-            overflow-y: auto;
-            padding-bottom: 20px;
-        }
-
-        #footer {
-            height: 75px;
-            background-color: darkgrey;
-        }
-
-        /* Collapsible Table of Contents Container UI */
         .toc-panel {
-            position: absolute;
-            top: 10px;
-            right: 50px;
-            z-index: 1000;
-            background: white;
-            padding: 10px;
-            border-radius: 4px;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-            max-width: 250px;
-            font-family: Arial, sans-serif;
+            position: absolute; top: 10px; right: 50px; z-index: 1000;
+            background: white; padding: 10px; border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4); max-width: 250px; font-family: Arial, sans-serif;
         }
-        .toc-header {
-            font-weight: bold;
-            cursor: pointer;
-            padding-bottom: 5px;
-            border-bottom: 1px solid #ccc;
-            user-select: none;
-        }
-        .toc-content {
-            margin-top: 8px;
-        }
+        .toc-header { font-weight: bold; cursor: pointer; padding-bottom: 5px; border-bottom: 1px solid #ccc; user-select: none; }
+        .toc-content { margin-top: 8px; }
 
-        /* Map Legend Dashboard Viewport */
         .map-legend {
-            position: absolute;
-            bottom: 30px;
-            right: 10px;
-            z-index: 999;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            line-height: 18px;
+            position: absolute; bottom: 30px; right: 10px; z-index: 999;
+            background: rgba(255, 255, 255, 0.9); padding: 10px; border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2); font-family: Arial, sans-serif; font-size: 12px; line-height: 18px;
         }
-        .legend-color-box {
-            width: 18px;
-            height: 18px;
-            float: left;
-            margin-right: 8px;
-            opacity: 0.7;
-            border: 1px solid #555;
+        .legend-color-box { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.7; border: 1px solid #555; }
+
+        .north-arrow-control {
+            position: absolute; top: 90px; left: 10px; z-index: 1000;
+            background: white; padding: 5px; border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4); width: 34px; height: 34px; text-align: center;
         }
 
-        /* Compass Card North Arrow Panel */
-        .north-arrow-control {
-            position: absolute;
-            top: 90px;
-            left: 10px;
-            z-index: 1000;
-            background: white;
-            padding: 5px;
-            border-radius: 4px;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-            width: 34px;
-            height: 34px;
-            text-align: center;
-        }
         .sentiment-badge {
             padding: 3px 8px; border-radius: 3px; font-weight: bold; color: white; display: inline-block; font-size: 11px;
         }
@@ -113,7 +52,7 @@
 
 <body>
     <div id="header" class="col-md-12">
-        <h1 class="text-center" style="margin-top: 15px; font-weight: bold;">Lille WebGIS - Sentiment Dashboard</h1>
+        <h1 class="text-center" style="margin-top: 15px; font-weight: bold;">Lille</h1>
     </div>
 
     <div id="side_panel" class="col-md-3">
@@ -124,6 +63,7 @@
         <button id="toggleAddSentimentMode" class="form-control btn btn-info" style="margin-bottom: 5px; font-weight: bold;">➕ Activer le Mode Dessin</button>
         <button id="btnExportGeoJSON" class="form-control btn btn-success" style="margin-bottom: 10px;">💾 Télécharger vos points (GeoJSON)</button>
         <hr>
+        
         <h4 class="text-center" style="text-decoration: underline;">Actions Rapides</h4>
         <div class="form-group" style="padding: 5px 0;">
             <label for="buffer-input">Distance du Buffer (mètres):</label>
@@ -147,9 +87,10 @@
         <hr>
         
         <h4><b>Points Sentiment Enregistrés</b></h4>
-        <div id="user-points-container" style="max-height: 200px; overflow-y: auto; background: rgba(255,255,255,0.5); padding: 5px; border-radius: 4px; margin-bottom: 15px;">
+        <div id="user-points-container" style="max-height: 150px; overflow-y: auto; background: rgba(255,255,255,0.5); padding: 5px; border-radius: 4px; margin-bottom: 15px;">
             <p id="empty-sentiment-msg" class="text-center text-muted" style="font-size:12px; margin-top:5px;">Aucun point enregistré pour le moment.</p>
         </div>
+        <hr>
         
         <div id="park-list-container"></div>
     </div>
@@ -160,6 +101,7 @@
             <div class="toc-content" id="toc-items">
                 <div class="checkbox"><label><input type="checkbox" id="layer-osm" checked> Carte de base (OSM)</label></div>
                 <div class="checkbox"><label><input type="checkbox" id="layer-parks" checked> Espaces Verts de Lille</label></div>
+                <div class="checkbox"><label><input type="checkbox" id="layer-user-points" checked> Mes Points Sentiments</label></div>
                 <div class="checkbox"><label><input type="checkbox" id="layer-citadelle" checked> Citadelle de Lille (Point)</label></div>
             </div>
         </div>
@@ -179,7 +121,6 @@
             <div><span class="sentiment-badge" style="background:#f39c12;">😒 Sad</span></div>
             <div><span class="sentiment-badge" style="background:#e74c3c;">😡 Angry / Mad</span></div>
         </div>       
-        </div>
 
         <div class="north-arrow-control">
             <span style="font-weight:bold; font-size:16px; color:#c0392b; display:block; margin-top:-2px;">▲</span>
@@ -193,7 +134,6 @@
     </div>
 
     <script>
-        // Initialize Map Engine and configure Fullscreen plugin parameters
         var mymap = L.map('mapdiv', {
             fullscreenControl: true,
             fullscreenControlOptions: { position: 'topleft' }
@@ -216,24 +156,17 @@
             $("#map_coords").html("Latitude: " + center.lat.toFixed(5) + " Longitude: " + center.lng.toFixed(5) + " Zoom Level: " + zoom);
         });
 
-        // Table Of Contents (TOC) Pane UI Visibility Toggle
         function toggleTOC() {
             var items = $("#toc-items");
             var icon = $("#toc-toggle-icon");
-            if (items.is(":visible")) {
-                items.slideUp();
-                icon.text("▲");
-            } else {
-                items.slideDown();
-                icon.text("▼");
-            }
+            items.is(":visible") ? (items.slideUp(), icon.text("▲")) : (items.slideDown(), icon.text("▼"));
         }
 
         $("#layer-osm").on('change', function() { this.checked ? mymap.addLayer(backgroundLayer) : mymap.removeLayer(backgroundLayer); });
         $("#layer-citadelle").on('change', function() { this.checked ? mymap.addLayer(citadellemarker) : mymap.removeLayer(citadellemarker); });
         $("#layer-parks").on('change', function() { this.checked ? mymap.addLayer(geojsonLayer) : mymap.removeLayer(geojsonLayer); });
+        $("#layer-user-points").on('change', function() { this.checked ? mymap.addLayer(userSentimentFeatureGroup) : mymap.removeLayer(userSentimentFeatureGroup); });
 
-        // Symbology Value Parsing Color Lookup Map Array
         function getParkColor(typeValue) {
             if (!typeValue) return '#95a5a6';
             switch (typeValue.trim()) {
@@ -245,7 +178,6 @@
             }
         }
 
-        // Returns url reference id values mapping to the newly injected SVG patterns block code
         function getParkPattern(typeValue) {
             if (!typeValue) return '';
             switch (typeValue.trim()) {
@@ -257,7 +189,6 @@
             }
         }
 
-        // REVOLUTIONARY FIX: Grabs Leaflet's actual dynamic map canvas root and builds the pattern tags INSIDE it!
         function injectSvgPatterns() {
             var svgCanvas = mymap.getPanes().overlayPane.querySelector('svg');
             if (!svgCanvas) return;
@@ -284,17 +215,14 @@
             `;
         }
 
-        var rawBackupGeoJSON = null; // Backup structure holding original dataset parameters safely
+        var rawBackupGeoJSON = null; 
 
         var geojsonLayer = L.geoJSON(null, {
             style: function (feature) {
                 var typeAttr = feature.properties.types;
                 return {
-                    color: getParkColor(typeAttr),
-                    fillColor: getParkPattern(typeAttr),
-                    weight: 3,
-                    opacity: 0.9,
-                    fillOpacity: 0.6
+                    color: getParkColor(typeAttr), fillColor: getParkPattern(typeAttr),
+                    weight: 3, opacity: 0.9, fillOpacity: 0.6
                 };
             },
             onEachFeature: function (feature, layer) {
@@ -305,11 +233,7 @@
                 if (feature.properties["Ouverture au public"]) infoHtml += "<b>Ouverture au public:</b> " + feature.properties["Ouverture au public"] + "<br>";
 
                 var popupBtn = $("<button class='btn btn-success btn-xs btn-block' style='margin-top: 10px;'>🔍 Zoomer sur cet espace</button>");
-                popupBtn.on('click', function () {
-                    if (typeof layer.getBounds === 'function') {
-                        mymap.setView(layer.getBounds().getCenter(), 17);
-                    }
-                });
+                popupBtn.on('click', function () { if (typeof layer.getBounds === 'function') { mymap.setView(layer.getBounds().getCenter(), 17); } });
 
                 var popupContainer = $("<div></div>").append(infoHtml).append(popupBtn);
                 layer.bindPopup(popupContainer[0]);
@@ -320,49 +244,50 @@
 
                 sidebarBtn.on('click', function () {
                     if (typeof layer.getBounds === 'function') {
-                        mymap.setView(layer.getBounds().getCenter(), 17);
-                        layer.openPopup();
+                        mymap.setView(layer.getBounds().getCenter(), 17); layer.openPopup();
                     }
                 });
 
                 itemContainer.append(sidebarBtn).append("<hr>");
                 $("#park-list-container").append(itemContainer);
             }
-        });
+        }).addTo(mymap);
 
-        geojsonLayer.addTo(mymap);
-        // NATIVE FETCH ENGINE API: Stream data reliably from the root directory path
         fetch('parksLille.geojson')
             .then(function(response) {
                 if (!response.ok) throw new Error("HTTP error " + response.status);
                 return response.json();
             })
             .then(function(data) {
-                rawBackupGeoJSON = data; // Cache fallback dataset clone
-                geojsonLayer.addData(data); // Append layers directly onto map
-                injectSvgPatterns(); // Inject cross hatch shapes
+                rawBackupGeoJSON = data; 
+                geojsonLayer.addData(data); 
+                injectSvgPatterns(); 
             })
             .catch(function(error) {
                 console.error("Failed to load geojson via Fetch API:", error);
             });
 
-        // Inject custom canvas textures immediately upon successful load completion hook
-        geojsonLayer.on('data:loaded', function() {
-            rawBackupGeoJSON = geojsonLayer.toGeoJSON();
-            injectSvgPatterns();
+        // =============================================================
+        // INTERACTIVE DRAW MODE CONTROLLER SYSTEM
+        // =============================================================
+        var trackedUserFeaturesList = [];
+        var userSentimentFeatureGroup = L.featureGroup().addTo(mymap);
+        
+        // Safety Gate Boolean (Falsy baseline halts unwanted cursor triggers)
+        var addSentimentModeActive = false; 
+
+        $("#toggleAddSentimentMode").on('click', function() {
+            addSentimentModeActive = !addSentimentModeActive; 
+
+            if (addSentimentModeActive) {
+                $(this).text("❌ Désactiver le Mode Dessin").removeClass("btn-info").addClass("btn-danger");
+                $("#mapdiv").css("cursor", "cell"); 
+            } else {
+                $(this).text("➕ Activer le Mode Dessin").removeClass("btn-danger").addClass("btn-info");
+                $("#mapdiv").css("cursor", "grab"); 
+            }
         });
 
-        // =============================================================
-        // NEW FEATURE SECTION: INTERACTIVE GEODATA GENERATOR ENGINE
-        // =============================================================
-        
-        // This array securely holds all points created during the user session
-        var trackedUserFeaturesList = [];
-        
-        // FeatureGroup to track, display, and toggle user markings cleanly
-        var userSentimentFeatureGroup = L.featureGroup().addTo(mymap);
-
-        // Helper utility returning color styling corresponding to user sentiment selections
         function getSentimentEmoji(feeling) {
             switch (feeling) {
                 case 'Happy': return '😊';
@@ -371,16 +296,19 @@
                 case 'Sad': return '😒';
                 case 'Angry':
                 case 'Mad': return '😡';
-                default: return '📍';      
+                default: return '📍';
             }
         }
 
-        // Map Click Workflow interceptor
         mymap.on('click', function (e) {
+            // CRITICAL CHECK GAUNTLET: Halts execution if Draw Mode toggle hasn't been clicked!
+            if (!addSentimentModeActive) {
+                return; 
+            }
+
             var clickedLat = e.latlng.lat;
             var clickedLng = e.latlng.lng;
 
-            // Generate an active HTML popup body containing a dropdown menu selector input view
             var formPopupContainer = $("<div></div>");
             formPopupContainer.append("<h4><b>Quel est votre sentiment ici ?</b></h4><hr>");
             formPopupContainer.append("<p style='font-size:11px; margin-bottom:5px;'><b>Coordonnées :</b> " + clickedLat.toFixed(4) + ", " + clickedLng.toFixed(4) + "</p>");
@@ -394,21 +322,17 @@
             selectMenu.append("<option value='Mad'>👿 Mad</option>");
             
             var submitBtn = $("<button class='btn btn-warning btn-xs btn-block'>Enregistrer la position</button>");
-            
             formPopupContainer.append(selectMenu).append(submitBtn);
 
-            // Open temporary input node popup view window straight at cursor location coordinates
             var inputPopup = L.popup()
                 .setLatLng(e.latlng)
                 .setContent(formPopupContainer[0])
                 .openOn(mymap);
 
-            // Handle submission click event inputs
             submitBtn.on('click', function () {
                 var selectedFeeling = selectMenu.val();
-                mymap.closePopup(inputPopup); // Wipes out form overlay layout smoothly
+                mymap.closePopup(inputPopup);
 
-                // 1. Build a valid GeoJSON Feature model payload format object envelope
                 var pointFeatureSchema = {
                     type: "Feature",
                     properties: {
@@ -417,55 +341,43 @@
                         latitude: clickedLat,
                         longitude: clickedLng
                     },
-                    geometry: {
-                        type: "Point",
-                        coordinates: [clickedLng, clickedLat] // GeoJSON specs strictly enforce Longitude first!
-                    }
+                    geometry: { type: "Point", coordinates: [clickedLng, clickedLat] }
                 };
 
-                // Store point directly inside background system memory list
                 trackedUserFeaturesList.push(pointFeatureSchema);
-                $("#empty-sentiment-msg").hide(); // Wipe text placeholders out
+                $("#empty-sentiment-msg").hide();
 
-                // 2. Build a custom Leaflet HTML DivIcon hosting your emoji text character
+                // Build text emoticon icons leveraging the native custom L.divIcon object module
                 var emojiIconMarker = L.divIcon({
-                    html: `<div style="font-size: 24px; line-height: 24px; text-shadow: 1px 1px 2px black;">${getSentimentEmoji(selectedFeeling)}</div>`,
-                    className: 'custom-emoji-marker', // Keeps the base container borderless and invisible
-                    iconSize: [24, 24],                // Sets specific element dimensional constraints
-                    iconAnchor: [12, 12]               // Anchors the absolute center of the emoji directly over the coordinate click path
+                    html: `<div style="font-size: 26px; line-height: 26px; text-shadow: 1px 1px 2px black;">${getSentimentEmoji(selectedFeeling)}</div>`,
+                    className: 'custom-emoji-marker',
+                    iconSize: [26, 26],
+                    iconAnchor: [13, 13]
                 });
 
-                // 3. Plot the native text marker directly onto your active sentiments group layer
-                var visualMarkerMarker = L.circleMarker([clickedLat, clickedLng], {
-                    icon:emojiIconmarker
+                var visualMarkerMarker = L.marker([clickedLat, clickedLng], {
+                    icon: emojiIconMarker
                 }).addTo(userSentimentFeatureGroup);
 
                 visualMarkerMarker.bindPopup("<b>Sentiment Enregistré:</b> " + selectedFeeling + "<br><small>" + pointFeatureSchema.properties.timestamp + "</small>");
 
-                // 4. Append text element row node to sidebar overview tracker table box
                 var sidebarRowItem = $("<div style='padding:5px; border-bottom:1px solid #ccc; font-size:12px;'></div>");
-                sidebarRowItem.append("📍 <b>" + selectedFeeling + "</b> (" + clickedLat.toFixed(3) + ", " + clickedLng.toFixed(3) + ")");
+                sidebarRowItem.append(getSentimentEmoji(selectedFeeling) + " <b>" + selectedFeeling + "</b> (" + clickedLat.toFixed(3) + ", " + clickedLng.toFixed(3) + ")");
                 $("#user-points-container").append(sidebarRowItem);
+                
+                // Automatically turn drawing mode off after dropping the marker to protect navigation experience
+                $("#toggleAddSentimentMode").trigger('click');
             });
         });
 
-        // 4. Download Trigger: Compiles memory data collection array and triggers direct download to local storage
         $("#btnExportGeoJSON").on('click', function () {
             if (trackedUserFeaturesList.length === 0) {
                 alert("Veuillez d'abord créer des points sentiments en cliquant sur la carte !");
                 return;
             }
 
-            // Package array blocks directly inside a standard GeoJSON FeatureCollection framework
-            var completeExportGeoJSONPayload = {
-                type: "FeatureCollection",
-                features: trackedUserFeaturesList
-            };
-
-            // Transform raw javascript object to printable formatted text data
+            var completeExportGeoJSONPayload = { type: "FeatureCollection", features: trackedUserFeaturesList };
             var textDataStringData = JSON.stringify(completeExportGeoJSONPayload, null, 2);
-            
-            // Build absolute binary blob resource pointer payload layout channel
             var blobPayloadChannel = new Blob([textDataStringData], { type: "application/json" });
             var temporaryDownloadAnchorElement = document.createElement('a');
             
@@ -474,31 +386,22 @@
             temporaryDownloadAnchorElement.style.display = 'none';
             
             document.body.appendChild(temporaryDownloadAnchorElement);
-            temporaryDownloadAnchorElement.click(); // Autotrigger browser file download execution pipeline smoothly
+            temporaryDownloadAnchorElement.click();
             document.body.removeChild(temporaryDownloadAnchorElement);
         });
 
         // Balanced Sync Filter Logic Engine
         $("#park-search").on('input', function () {
             var selectedValue = $(this).val().trim();
-            var targetOption = $("#park-types option").filter(function () {
-                return $(this).text() === selectedValue;
-            });
+            var targetOption = $("#park-types option").filter(function () { return $(this).text() === selectedValue; });
             var filterKey = targetOption.val() ? targetOption.val().trim() : selectedValue;
 
             $(".park-item-entry").each(function () {
                 var itemType = $(this).attr('data-type');
-                if (filterKey === "Toutes les zones vertes" || selectedValue === "") {
-                    $(this).show();
-                } else if (itemType === filterKey || itemType === selectedValue) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
-                }
+                (filterKey === "Toutes les zones vertes" || selectedValue === "") ? $(this).show() : (itemType === filterKey || itemType === selectedValue ? $(this).show() : $(this).hide());
             });
 
             if (!rawBackupGeoJSON) return;
-            
             geojsonLayer.clearLayers();
 
             if (filterKey === "Toutes les zones vertes" || selectedValue === "") {
@@ -508,47 +411,26 @@
                     var fType = (feat.properties.types || "").trim();
                     return fType === filterKey || fType === selectedValue;
                 });
-                var filteredGeoJSONCollection = { type: "FeatureCollection", features: filteredFeatures };
-                geojsonLayer.addData(filteredGeoJSONCollection);
+                geojsonLayer.addData({ type: "FeatureCollection", features: filteredFeatures });
             }
-            
-            // Re-inject definitions layer every time map layers rebuild
             injectSvgPatterns();
         });
 
-        // User-Defined Dynamic Turf.js Spatial Analysis Buffer Routine
+        // Buffer Controller
         var bufferLayer = null;
-        
         $("#btnBuffer").on('click', function () {
-            if (bufferLayer) {
-                mymap.removeLayer(bufferLayer);
-                bufferLayer = null;
-            }
+            if (bufferLayer) { mymap.removeLayer(bufferLayer); bufferLayer = null; }
 
             if ($(this).text() === "Générer le Buffer") {
                 var distanceVal = parseFloat($("#buffer-input").val());
-
-                if (isNaN(distanceVal) || distanceVal <= 0) {
-                    alert("Veuillez entrer une distance de buffer valide (supérieure à 0).");
-                    return;
-                }
+                if (isNaN(distanceVal) || distanceVal <= 0) { alert("Distance invalide."); return; }
 
                 var originalGeoJSON = geojsonLayer.toGeoJSON();
-                if (!originalGeoJSON || !originalGeoJSON.features || originalGeoJSON.features.length === 0) {
-                    alert("Les données des parcs ne sont pas encore complètement chargées. Réessayez.");
-                    return;
-                }
+                if (!originalGeoJSON || !originalGeoJSON.features || originalGeoJSON.features.length === 0) { alert("Données non prêtes."); return; }
 
                 var bufferedGeoJSON = turf.buffer(originalGeoJSON, distanceVal, { units: 'meters' });
-
                 bufferLayer = L.geoJSON(bufferedGeoJSON, {
-                    style: {
-                        color: '#2980b9',
-                        fillColor: '#3498db',
-                        weight: 2,
-                        opacity: 0.7,
-                        fillOpacity: 0.2
-                    }
+                    style: { color: '#2980b9', fillColor: '#3498db', weight: 2, opacity: 0.7, fillOpacity: 0.2 }
                 }).addTo(mymap);
 
                 mymap.fitBounds(bufferLayer.getBounds());
