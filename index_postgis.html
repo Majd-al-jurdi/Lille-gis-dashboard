@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lille WebGIS - Sentiment Dashboard</title>
+    
+    <!-- CSS Dependencies -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.0.2/Control.FullScreen.css" />
+    
+    <!-- JavaScript Dependencies -->
+    <script src="https://unpkg.com/leaflet@1.0.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.0.2/Control.FullScreen.js"></script>
+    <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-geometryutil@0.9.3/src/leaflet.geometryutil.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        #header { height: 75px; background-color: rgb(15, 121, 156); color: white; }
+        #mapdiv { height: 850px; background-color: #e5e9f0; transition: cursor 0.2s; }
+        #side_panel { height: 850px; background-color: rgb(174, 188, 223); overflow-y: auto; padding-bottom: 20px; }
+        #footer { height: 75px; background-color: darkgrey; }
+
+        /* Table of Contents Control Panel */
+        .toc-panel {
+            position: absolute; top: 10px; right: 50px; z-index: 1000;
+            background: white; padding: 10px; border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4); max-width: 250px; font-family: Arial, sans-serif;
+        }
+        .toc-header { font-weight: bold; cursor: pointer; padding-bottom: 5px; border-bottom: 1px solid #ccc; user-select: none; }
+        .toc-content { margin-top: 8px; }
+
+        /* Map Legend Panel */
+        .map-legend {
+            position: absolute; bottom: 30px; right: 10px; z-index: 999;
+            background: rgba(255, 255, 255, 0.9); padding: 10px; border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2); font-family: Arial, sans-serif; font-size: 12px; line-height: 18px;
+        }
+        .legend-color-box { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.7; border: 1px solid #555; }
+
+        /* North Arrow Overlay */
+        .north-arrow-control {
+            position: absolute; top: 90px; left: 10px; z-index: 1000;
+            background: white; padding: 5px; border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4); width: 34px; height: 34px; text-align: center;
+        }
+
+        .sentiment-badge {
+            padding: 3px 8px; border-radius: 3px; font-weight: bold; color: white; display: inline-block; font-size: 11px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header Section -->
+    <div id="header" class="col-md-12">
+        <h1 class="text-center" style="margin-top: 15px; font-weight: bold;">Lille WebGIS - Sentiment Dashboard</h1>
+    </div>
+
+    <!-- Sidebar Control Panel -->
+    <div id="side_panel" class="col-md-3">
+        <h3 class="text-center">Comprendre Lille</h3>
+        <button id="btnOpenDashboard" class="form-control btn btn-primary" data-toggle="modal" data-target="#dashboardModal" style="margin-bottom: 10px; font-weight: bold;">📊 Ouvrir le Dashboard</button>
+        <hr>
+        
+        <h4 class="text-center" style="text-decoration: underline;">Les Sentiments</h4>
+        <button id="togglePreviousSentiments" class="form-control btn btn-secondary" style="margin-bottom: 5px; font-weight: bold;">📂 Afficher les sentiments précédents</button>
+        <button id="toggleAddSentimentMode" class="form-control btn btn-info" style="margin-bottom: 5px; font-weight: bold;">➕ Activer le Mode Dessin</button>
+        
+        <h5><b>Points Sentiment Enregistrés</b></h5>
+        <button id="btnSaveSession" class="form-control btn btn-success" style="margin-bottom: 5px; font-weight: bold;">💾 Sauvegarder la session</button>
+        <button id="btnDiscardSession" class="form-control btn btn-danger" style="margin-bottom: 10px;">🗑️ Effacer le brouillon</button>
+        
+        <div id="user-points-container" style="max-height: 150px; overflow-y: auto; background: rgba(255,255,255,0.5); padding: 5px; border-radius: 4px; margin-bottom: 15px;">
+            <p id="empty-sentiment-msg" class="text-center text-muted" style="font-size:12px; margin-top:5px;">Aucun point enregistré pour le moment.</p>
+        </div>
+        
+        <button id="btnExportGeoJSON" class="form-control btn btn-success" style="margin-bottom: 10px;">💾 Télécharger vos points</button>     
+        <hr>
+        
+        <h4 class="text-center" style="text-decoration: underline;">Actions Rapides</h4>
+        <div class="form-group" style="padding: 5px 0;">
+            <label for="buffer-input">Distance du Buffer (mètres):</label>
+            <input type="number" id="buffer-input" class="form-control" value="100" min="1" max="5000" placeholder="Entrez la distance...">
+        </div>
+        <button id="btnBuffer" class="form-control btn btn-warning">Générer le Buffer</button>
+        <button id="ZoomToCitadelle" class="form-control btn btn-primary" style="margin-top: 5px;">Zoomer sur la Citadelle de Lille</button>
+        <hr>
+
+        <div style="padding: 10px 0;">
+            <label for="park-search">Filtrer les zones vertes par type:</label>
+            <input list="park-types" id="park-search" class="form-control" placeholder="Rechercher un type...">
+            <datalist id="park-types">
+                <option value="Toutes les zones vertes">Toutes les zones vertes</option>
+                <option value="Cimetière">Cimetière</option>
+                <option value="Espace vert public">Espace vert public</option>
+                <option value="Ferme pédagogique">Ferme pédagogique</option>
+                <option value="Jardin d'Habitants">Jardin d'Habitants</option>
+            </datalist>
+        </div>
+        <hr>
+        
+        <div id="park-list-container"></div>
+    </div>
+
+    <!-- Map Viewport -->
+    <div id="mapdiv" class="col-md-9" style="position: relative;">
+        <!-- Table of Contents Widget -->
+        <div class="toc-panel">
+            <div class="toc-header" onclick="toggleTOC()">Couches Cartographiques <span id="toc-toggle-icon" style="float:right;">▼</span></div>
+            <div class="toc-content" id="toc-items">
+                <div class="checkbox"><label><input type="checkbox" id="layer-osm" checked> Carte de base (OSM)</label></div>
+                <div class="checkbox"><label><input type="checkbox" id="layer-parks" checked> Espaces Verts de Lille</label></div>
+                <div class="checkbox"><label><input type="checkbox" id="layer-user-points" checked> Mes Points Sentiments</label></div>
+                <div class="checkbox"><label><input type="checkbox" id="layer-citadelle" checked> Citadelle de Lille</label></div>
+            </div>
+        </div>
+
+        <!-- Legend Widget -->
+        <div class="map-legend">
+            <h4><b>Légende</b></h4>
+            <div><div class="legend-color-box" style="background:#7f8c8d; background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, #fff 2px, #fff 4px);"></div>Cimetière</div>
+            <div><div class="legend-color-box" style="background:#2ecc71; background-image: repeating-linear-gradient(-45deg, transparent, transparent 2px, #fff 2px, #fff 4px);"></div>Espace vert public</div>
+            <div><div class="legend-color-box" style="background:#e67e22; background-image: repeating-linear-gradient(90deg, transparent, transparent 2px, #fff 2px, #fff 4px);"></div>Ferme pédagogique</div>
+            <div><div class="legend-color-box" style="background:#3498db; background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, #fff 2px, #fff 4px);"></div>Jardin d'Habitants</div>
+            <div><div class="legend-color-box" style="background:#95a5a6;"></div>Autre / Non classé</div>
+            <hr style="margin:5px 0;">
+            <h4><b>Légende Sentiments</b></h4>
+            <div><span class="sentiment-badge" style="background:#2ce679;">😊 Happy</span></div>
+            <div><span class="sentiment-badge" style="background:#3498db;">😌 Calm</span></div>
+            <div><span class="sentiment-badge" style="background:#95a5a6;">😐 Neutral</span></div>
+            <div><span class="sentiment-badge" style="background:#f39c12;">😒 Sad</span></div>
+            <div><span class="sentiment-badge" style="background:#e74c3c;">😡 Angry / Mad</span></div>
+        </div>       
+
+        <!-- North Arrow Widget -->
+        <div class="north-arrow-control">
+            <span style="font-weight:bold; font-size:16px; color:#c0392b; display:block; margin-top:-2px;">▲</span>
+            <span style="font-size:10px; font-weight:bold; display:block; margin-top:-4px;">N</span>
+        </div>
+    </div>
+
+    <!-- Footer Bar -->
+    <div id="footer" class="col-md-12">
+        <h4 id="map_coords" class="text-center" style="margin-top: 15px;">Latitude: 50.6333 Longitude: 3.06667 Zoom Level: 14</h4>
+    </div>
+
+    <!-- Dashboard Analytics Modal Container -->
+    <div class="modal fade" id="dashboardModal" tabindex="-1" role="dialog" aria-labelledby="dashboardModalLabel">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header" style="background-color: rgb(15, 121, 156); color: white;">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:white;"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="dashboardModalLabel">Statistiques de Lille (Données PostGIS & Session)</h4>
+          </div>
+          <div class="modal-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <h4 class="text-center">Types d'Espaces Verts</h4>
+                    <canvas id="parkChart"></canvas>
+                </div>
+                <div class="col-md-4">
+                    <h4 class="text-center">Tous les Sentiments</h4>
+                    <canvas id="sentimentChart"></canvas>
+                </div>
+                <div class="col-md-4">
+                    <h4 class="text-center">Sentiments / Parcs (%)</h4>
+                    <canvas id="relativeChart"></canvas>
+                </div>
+            </div>
+            <!-- Second Row: Dedicated New Sentiments Chart Only -->
+            <div class="row" style="margin-top: 20px;">
+                <div class="col-md-6 col-md-offset-3">
+                    <h4 class="text-center">Nouveaux Sentiments (Session Actuelle)</h4>
+                    <canvas id="newSentimentChart"></canvas>
+                </div>
+            </div>
+            <hr>
+            <div id="dashboardSummary" class="text-center" style="font-size: 16px; font-weight: bold;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         JAVASCRIPT LOGIC - ORGANIZED & GROUPED
+         ===================================================================== -->
+    <script>
+        /* ==========================================================
+           1. MAP INITIALIZATION & BASE LAYERS
+           ========================================================== */
+        var mymap = L.map('mapdiv', {
+            fullscreenControl: true,
+            fullscreenControlOptions: { position: 'topleft' }
+        });
+        mymap.setView([50.6333, 3.06667], 14);
+
+        var backgroundLayer = L.tileLayer('https://{s}.tile.osm.org/{z}/{x}/{y}.png').addTo(mymap);
+        L.control.scale({ position: 'bottomleft', imperial: false }).addTo(mymap);
+
+        mymap.on('move', function () {
+            var center = mymap.getCenter();
+            var zoom = mymap.getZoom();
+            $("#map_coords").html("Latitude: " + center.lat.toFixed(5) + " Longitude: " + center.lng.toFixed(5) + " Zoom Level: " + zoom);
+        });
+
+        /* ==========================================================
+           2. CITADELLE MARKER & LAYER GROUPS CONFIGURATION
+           ========================================================== */
+        var citadellemarker = L.marker([50.6409, 3.0446]).addTo(mymap);
+        var citadellePopupHtml = `
+            <h3><b>Citadelle de Lille</b></h3>
+            <hr>
+            <p>Citadelle de Lille is a pentagonal fortress built by Vauban in 1667.</p>
+            <div style="text-align: center; margin-top: 10px;">
+                <a href="https://fr.wikipedia.org/wiki/Citadelle_de_Lille" target="_blank" title="Ouvrir Wikipédia">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Vue_satellite_Citadelle_de_Lille.jpg/250px-Vue_satellite_Citadelle_de_Lille.jpg" 
+                         alt="Citadelle de Lille" 
+                         style="width: 100%; max-width: 220px; border-radius: 4px; border: 1px solid #ccc; cursor: pointer;" />
+                </a>
+            </div>
+        `;
+        citadellemarker.bindPopup(citadellePopupHtml);
+        $("#ZoomToCitadelle").on('click', function () { mymap.setView([50.6409, 3.0446], 17); });
+
+        var userSentimentFeatureGroup = L.featureGroup().addTo(mymap);
+        var previousSentimentFeatureGroup = L.featureGroup();
+        var databaseSentimentsList = [];
+        var trackedUserFeaturesList = [];
+        var addSentimentModeActive = false;
+
+        /* ==========================================================
+           3. SYMBOLOGY, STYLES, & SVG HATCH PATTERNS
+           ========================================================== */
+        function getParkColor(typeValue) {
+            if (!typeValue) return '#95a5a6';
+            switch (typeValue.trim()) {
+                case 'Cimetière': return '#7f8c8d';
+                case 'Espace vert public': return '#2ecc71';
+                case 'Ferme pédagogique': return '#e67e22';
+                case 'Jardin d\'Habitants': return '#3498db';
+                default: return '#95a5a6';
+            }
+        }
+
+        function getParkPattern(typeValue) {
+            if (!typeValue) return '';
+            switch (typeValue.trim()) {
+                case 'Cimetière': return 'url(#pattern-cemetery)';
+                case 'Espace vert public': return 'url(#pattern-green)';
+                case 'Ferme pédagogique': return 'url(#pattern-farm)';
+                case 'Jardin d\'Habitants': return 'url(#pattern-jardin)';
+                default: return '';
+            }
+        }
+
+        function injectSvgPatterns() {
+            var svgCanvas = mymap.getPanes().overlayPane.querySelector('svg');
+            if (!svgCanvas) return;
+            var defs = svgCanvas.querySelector('defs');
+            if (!defs) {
+                defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                svgCanvas.insertBefore(defs, svgCanvas.firstChild);
+            }
+            defs.innerHTML = `
+                <pattern id="pattern-cemetery" width="10" height="10" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="10" stroke="#7f8c8d" stroke-width="3" /></pattern>
+                <pattern id="pattern-green" width="12" height="12" patternTransform="rotate(135)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="12" stroke="#27ae60" stroke-width="3" /></pattern>
+                <pattern id="pattern-farm" width="20" height="20" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="20" stroke="#d35400" stroke-width="4" /></pattern>
+                <pattern id="pattern-jardin" width="8" height="8" patternTransform="rotate(90)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="8" stroke="#2980b9" stroke-width="2" /></pattern>
+            `;
+        }
+
+        /* ==========================================================
+           4. GEOJSON DATA LOADING & SPATIAL LAYERS
+           ========================================================== */
+        var rawBackupGeoJSON = null; 
+
+        var geojsonLayer = L.geoJSON(null, {
+            style: function (feature) {
+                var typeAttr = feature.properties.types;
+                return {
+                    color: getParkColor(typeAttr), fillColor: getParkPattern(typeAttr),
+                    weight: 3, opacity: 0.9, fillOpacity: 0.6
+                };
+            },
+            onEachFeature: function (feature, layer) {
+                var infoHtml = "<h4>" + (feature.properties.nom || "Espace Vert") + "</h4><hr>";
+                if (feature.properties.quartier) infoHtml += "<b>Quartier:</b> " + feature.properties.quartier + "<br>";
+                if (feature.properties.types) infoHtml += "<b>Type:</b> " + feature.properties.types + "<br>";
+                
+                if (feature.properties.surface) {
+                    var surfaceNum = parseFloat(feature.properties.surface);
+                    if (!isNaN(surfaceNum)) infoHtml += "<b>Surface:</b> " + surfaceNum.toFixed(0) + " m²<br>";
+                }
+
+                var popupBtn = $("<button class='btn btn-success btn-xs btn-block' style='margin-top: 10px;'>🔍 Zoomer sur cet espace</button>");
+                popupBtn.on('click', function () { if (typeof layer.getBounds === 'function') { mymap.setView(layer.getBounds().getCenter(), 17); } });
+
+                var popupContainer = $("<div></div>").append(infoHtml).append(popupBtn);
+                layer.bindPopup(popupContainer[0]);
+
+                var typeAttr = (feature.properties.types || "").trim();
+                var itemContainer = $("<div class='park-item-entry' data-type='" + typeAttr + "'></div>").append(infoHtml);
+                var sidebarBtn = $("<button class='form-control btn-success'>Zoomer sur cet espace</button>");
+
+                sidebarBtn.on('click', function () {
+                    if (typeof layer.getBounds === 'function') {
+                        mymap.setView(layer.getBounds().getCenter(), 17); layer.openPopup();
+                    }
+                });
+
+                itemContainer.append(sidebarBtn).append("<hr>");
+                $("#park-list-container").append(itemContainer);
+            }
+        }).addTo(mymap);
+
+        // Fetch Parks Dataset
+        $.ajax({
+            url: 'load_parksLille.php',
+            success: function(response) {
+                var data = (typeof response === 'string') ? JSON.parse(response) : response;
+                rawBackupGeoJSON = data; 
+                geojsonLayer.addData(data); 
+                injectSvgPatterns(); 
+            },
+            error: function(xhr, status, error) { console.error("AJAX Error (Parks): ", error); }
+        });
+
+        // Load Database Sentiments
+        function loadDatabaseSentiments() {
+            $.ajax({
+                url: 'load_sentiments.php',
+                success: function(response) {
+                    var sentData = (typeof response === 'string') ? JSON.parse(response) : response;
+                    databaseSentimentsList = [];
+                    if (sentData && sentData.features) {
+                        sentData.features.forEach(function(feat) { databaseSentimentsList.push(feat); });
+                    }
+                    renderDraftMarkers();
+                }
+            });
+        }
+        loadDatabaseSentiments();
+
+        /* ==========================================================
+           5. INTERACTIVE TOOLS & EVENT HANDLERS
+           ========================================================== */
+        function toggleTOC() {
+            var items = $("#toc-items");
+            var icon = $("#toc-toggle-icon");
+            items.is(":visible") ? (items.slideUp(), icon.text("▲")) : (items.slideDown(), icon.text("▼"));
+        }
+        $("#layer-osm").on('change', function() { this.checked ? mymap.addLayer(backgroundLayer) : mymap.removeLayer(backgroundLayer); });
+        $("#layer-citadelle").on('change', function() { this.checked ? mymap.addLayer(citadellemarker) : mymap.removeLayer(citadellemarker); });
+        $("#layer-parks").on('change', function() { this.checked ? mymap.addLayer(geojsonLayer) : mymap.removeLayer(geojsonLayer); });
+        $("#layer-user-points").on('change', function() { this.checked ? mymap.addLayer(userSentimentFeatureGroup) : mymap.removeLayer(userSentimentFeatureGroup); });
+
+        $("#toggleAddSentimentMode").on('click', function() {
+            addSentimentModeActive = !addSentimentModeActive; 
+            if (addSentimentModeActive) {
+                $(this).text("❌ Désactiver le Mode Dessin").removeClass("btn-info").addClass("btn-danger");
+                $("#mapdiv").css("cursor", "cell"); 
+            } else {
+                $(this).text("➕ Activer le Mode Dessin").removeClass("btn-danger").addClass("btn-info");
+                $("#mapdiv").css("cursor", "grab"); 
+            }
+        });
+
+        function getSentimentEmoji(feeling) {
+            switch (feeling) {
+                case 'Happy': return '😊'; case 'Calm': return '😌'; case 'Neutral': return '😐';
+                case 'Sad': return '😒'; case 'Angry': case 'Mad': return '😡'; default: return '📍';
+            }
+        }
+
+        function getSentimentSelectHtml(currentFeeling, index) {
+            var options = ['Happy', 'Calm', 'Neutral', 'Sad', 'Angry', 'Mad'];
+            var html = `<select class='form-control input-sm select-change-sentiment' data-index='${index}' style='margin-bottom:8px;'>`;
+            options.forEach(function(opt) {
+                var sel = (opt === currentFeeling) ? 'selected' : '';
+                html += `<option value='${opt}' ${sel}>${opt}</option>`;
+            });
+            html += `</select>`;
+            return html;
+        }
+
+        function renderDraftMarkers() {
+            userSentimentFeatureGroup.clearLayers();
+            $("#user-points-container").empty();
+
+            var combinedList = databaseSentimentsList.concat(trackedUserFeaturesList);
+
+            if (combinedList.length === 0) {
+                $("#user-points-container").append('<p id="empty-sentiment-msg" class="text-center text-muted" style="font-size:12px; margin-top:5px;">Aucun point enregistré pour le moment.</p>');
+                return;
+            }
+
+            // Render active session drafts first so they stand out clearly
+            trackedUserFeaturesList.forEach(function(feat, idx) {
+                var lng = feat.geometry.coordinates[0];
+                var lat = feat.geometry.coordinates[1];
+                var feeling = feat.properties.feeling;
+                var isSaved = feat.properties.saved;
+
+                var emojiIcon = L.divIcon({
+                    html: `<div style="font-size: 26px; line-height: 26px; text-shadow: 1px 1px 2px black;">${getSentimentEmoji(feeling)}</div>`,
+                    className: 'custom-emoji-marker',
+                    iconSize: [26, 26], iconAnchor: [13, 13]
+                });
+
+                var marker = L.marker([lat, lng], { icon: emojiIcon, draggable: !isSaved }).addTo(userSentimentFeatureGroup);
+
+                if (!isSaved) {
+                    marker.on('dragend', function (event) {
+                        var newLatLng = event.target.getLatLng();
+                        feat.geometry.coordinates = [newLatLng.lng, newLatLng.lat];
+                    });
+                }
+
+                var popupHtml = !isSaved ? 
+                    `<div style="min-width: 160px;"><b>Modifier le brouillon :</b><br>${getSentimentSelectHtml(feeling, idx)}<hr><button class='btn btn-danger btn-xs btn-block btn-delete-draft' data-index='${idx}'>🗑️ Supprimer</button></div>` :
+                    `<div><b>Point Sauvegardé ✅</b><br>Sentiment: ${feeling}</div>`;
+                
+                marker.bindPopup(popupHtml);
+
+                var sidebarRowItem = $("<div style='padding:5px; border-bottom:1px solid #ccc; font-size:12px;'></div>");
+                sidebarRowItem.append(getSentimentEmoji(feeling) + " <b>" + feeling + "</b> " + (isSaved ? "✅ Sauvegardé" : "<b>(Brouillon Actif)</b>"));
+                $("#user-points-container").append(sidebarRowItem);
+            });
+        }
+
+        mymap.on('click', function (e) {
+            if (!addSentimentModeActive) return; 
+
+            var clickedLat = e.latlng.lat;
+            var clickedLng = e.latlng.lng;
+
+            var formPopupContainer = $("<div></div>");
+            formPopupContainer.append("<h4><b>Quel est votre sentiment ici ?</b></h4><hr>");
+            
+            var selectMenu = $("<select class='form-control input-sm' style='margin-bottom:10px;'><option value='Happy'>😊 Happy</option><option value='Calm'>😌 Calm</option><option value='Neutral'>😐 Neutral</option><option value='Sad'>😒 Sad</option><option value='Angry'>😡 Angry</option><option value='Mad'>👿 Mad</option></select>");
+            var submitBtn = $("<button class='btn btn-warning btn-xs btn-block'>Enregistrer la position</button>");
+            formPopupContainer.append(selectMenu).append(submitBtn);
+
+            var inputPopup = L.popup().setLatLng(e.latlng).setContent(formPopupContainer[0]).openOn(mymap);
+
+            submitBtn.on('click', function () {
+                var selectedFeeling = selectMenu.val();
+                mymap.closePopup(inputPopup);
+
+                var pointFeatureSchema = {
+                    type: "Feature",
+                    properties: { feeling: selectedFeeling, timestamp: new Date().toISOString(), saved: false },
+                    geometry: { type: "Point", coordinates: [clickedLng, clickedLat] }
+                };
+
+                trackedUserFeaturesList.push(pointFeatureSchema);
+                $("#empty-sentiment-msg").hide();
+                renderDraftMarkers();
+                $("#toggleAddSentimentMode").trigger('click');
+            });
+        });
+
+        $(document).on('change', '.select-change-sentiment', function () {
+            var indexToUpdate = $(this).attr('data-index');
+            trackedUserFeaturesList[indexToUpdate].properties.feeling = $(this).val();
+            renderDraftMarkers();
+        });
+
+        $(document).on('click', '.btn-delete-draft', function () {
+            var indexToRemove = $(this).attr('data-index');
+            trackedUserFeaturesList.splice(indexToRemove, 1); 
+            renderDraftMarkers();
+        });   
+
+        $("#btnDiscardSession").on('click', function () {
+            if (trackedUserFeaturesList.length === 0) return;
+            if(confirm("Voulez-vous effacer ces points brouillons ?")) {
+                trackedUserFeaturesList = trackedUserFeaturesList.filter(item => item.properties.saved);
+                renderDraftMarkers();
+            }
+        });
+
+        $("#btnSaveSession").on('click', function () {
+            var unsavedPoints = trackedUserFeaturesList.filter(item => !item.properties.saved);
+            if (unsavedPoints.length === 0) { alert("Aucun nouveau point à sauvegarder !"); return; }
+
+            fetch('save_session_sentiments.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ points: unsavedPoints })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.status === "success") {
+                    alert("Points sauvegardés avec succès !");
+                    trackedUserFeaturesList.forEach(item => item.properties.saved = true);
+                    loadDatabaseSentiments();
+                    trackedUserFeaturesList = [];
+                } else { alert("Erreur : " + data.message); }
+            });
+        });
+
+        // Toggle Previous Sentiments Layer (Clean & Styled)
+        var previousSentimentsVisible = false;
+        $("#togglePreviousSentiments").on('click', function() {
+            previousSentimentsVisible = !previousSentimentsVisible;
+            if (previousSentimentsVisible) {
+                $(this).text("📂 Masquer les sentiments précédents").removeClass("btn-secondary").addClass("btn-warning");
+                mymap.addLayer(previousSentimentFeatureGroup);
+                previousSentimentFeatureGroup.clearLayers();
+                
+                databaseSentimentsList.forEach(function(feat) {
+                    var lat = feat.geometry.coordinates[1];
+                    var lng = feat.geometry.coordinates[0];
+                    var feeling = feat.properties.feeling;
+                    
+                    // Use a slightly smaller or cleaner icon representation for historical data
+                    var historicalIcon = L.divIcon({
+                        html: `<div style="font-size: 20px; opacity: 0.75; text-shadow: 1px 1px 1px #fff;">${getSentimentEmoji(feeling)}</div>`,
+                        className: 'historical-emoji-marker',
+                        iconSize: [20, 20], iconAnchor: [10, 10]
+                    });
+
+                    var marker = L.marker([lat, lng], { icon: historicalIcon });
+                    marker.bindPopup("<b>Sentiment Historique:</b> " + feeling);
+                    previousSentimentFeatureGroup.addLayer(marker);
+                });
+            } else {
+                $(this).text("📂 Afficher les sentiments précédents").removeClass("btn-warning").addClass("btn-secondary");
+                mymap.removeLayer(previousSentimentFeatureGroup);
+            }
+        });
+
+        // Filtering Engine
+        $("#park-search").on('input', function () {
+            var selectedValue = $(this).val().trim();
+            if (!rawBackupGeoJSON) return;
+            geojsonLayer.clearLayers();
+            $("#park-list-container").empty();
+
+            if (selectedValue === "" || selectedValue === "Toutes les zones vertes") {
+                geojsonLayer.addData(rawBackupGeoJSON);
+            } else {
+                var filteredFeatures = rawBackupGeoJSON.features.filter(function(feat) {
+                    return (feat.properties.types || "").trim() === selectedValue;
+                });
+                geojsonLayer.addData({ type: "FeatureCollection", features: filteredFeatures });
+            }
+            injectSvgPatterns();
+        });
+
+        // Buffer Engine
+        var bufferLayer = null;
+        $("#btnBuffer").on('click', function () {
+            if (bufferLayer) { mymap.removeLayer(bufferLayer); bufferLayer = null; }
+            if ($(this).text() === "Générer le Buffer") {
+                var distanceVal = parseFloat($("#buffer-input").val());
+                var originalGeoJSON = geojsonLayer.toGeoJSON();
+                if (!originalGeoJSON || originalGeoJSON.features.length === 0) return;
+                bufferLayer = L.geoJSON(turf.buffer(originalGeoJSON, distanceVal, { units: 'meters' }), {
+                    style: { color: '#2980b9', fillColor: '#3498db', weight: 2, fillOpacity: 0.2 }
+                }).addTo(mymap);
+                mymap.fitBounds(bufferLayer.getBounds());
+                $(this).text("Supprimer le Buffer").removeClass("btn-warning").addClass("btn-danger");
+            } else {
+                $(this).text("Générer le Buffer").removeClass("btn-danger").addClass("btn-warning");
+            }
+        });
+
+        /* ==========================================================
+           6. ANALYTICS DASHBOARD MODAL & CHART.JS LOGIC
+           ========================================================== */
+        var parkChartInstance = null;
+        var sentimentChartInstance = null;
+        var relativeChartInstance = null;
+        var newSentimentChartInstance = null;
+
+        $('#dashboardModal').on('shown.bs.modal', function () {
+            var parkCounts = {};
+            var visibleParksData = geojsonLayer.toGeoJSON();
+            
+            if (visibleParksData && visibleParksData.features) {
+                visibleParksData.features.forEach(function(feature) {
+                    var type = feature.properties.types || "Non classé";
+                    parkCounts[type] = (parkCounts[type] || 0) + 1;
+                });
+            }
+
+            var totalVisibleParks = Object.values(parkCounts).reduce((a, b) => a + b, 0);
+
+            // Combine Database + Drafts for overall charts
+            var allSentiments = databaseSentimentsList.concat(trackedUserFeaturesList);
+            var sentimentCounts = { 'Happy': 0, 'Calm': 0, 'Neutral': 0, 'Sad': 0, 'Angry': 0, 'Mad': 0 };
+            allSentiments.forEach(function(feature) {
+                var feeling = feature.properties.feeling;
+                if (sentimentCounts.hasOwnProperty(feeling)) sentimentCounts[feeling]++;
+            });
+
+            // New session specific counts
+            var newSentimentCounts = { 'Happy': 0, 'Calm': 0, 'Neutral': 0, 'Sad': 0, 'Angry': 0, 'Mad': 0 };
+            trackedUserFeaturesList.forEach(function(feature) {
+                var feeling = feature.properties.feeling;
+                if (newSentimentCounts.hasOwnProperty(feeling)) newSentimentCounts[feeling]++;
+            });
+
+            $("#dashboardSummary").text(`Espaces Verts Visibles: ${totalVisibleParks} | Total Sentiments Combinés: ${allSentiments.length}`);
+
+            // Chart 1: Park Types Bar Chart
+            var ctxPark = document.getElementById('parkChart').getContext('2d');
+            if(parkChartInstance) parkChartInstance.destroy(); 
+            parkChartInstance = new Chart(ctxPark, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(parkCounts),
+                    datasets: [{ label: 'Espaces verts affichés', data: Object.values(parkCounts), backgroundColor: ['#2ecc71', '#3498db', '#e67e22', '#7f8c8d'] }]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            });
+
+            // Chart 2: All Sentiments Doughnut Chart
+            var ctxSentiment = document.getElementById('sentimentChart').getContext('2d');
+            if(sentimentChartInstance) sentimentChartInstance.destroy();
+            sentimentChartInstance = new Chart(ctxSentiment, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(sentimentCounts),
+                    datasets: [{ data: Object.values(sentimentCounts), backgroundColor: ['#2ce679', '#3498db', '#95a5a6', '#f39c12', '#e74c3c', '#8e44ad'] }]
+                },
+                options: { responsive: true }
+            });
+
+            // Chart 3: Sentiments / Parks (%)
+            var relativePercentages = {};
+            Object.keys(sentimentCounts).forEach(function(key) {
+                relativePercentages[key] = totalVisibleParks > 0 ? ((sentimentCounts[key] / totalVisibleParks) * 100).toFixed(1) : 0;
+            });
+            var ctxRelative = document.getElementById('relativeChart').getContext('2d');
+            if(relativeChartInstance) relativeChartInstance.destroy();
+            relativeChartInstance = new Chart(ctxRelative, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(relativePercentages),
+                    datasets: [{ label: '% par rapport aux parcs', data: Object.values(relativePercentages), backgroundColor: '#0f799c' }]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { callback: function(value) { return value + "%"; } } } } }
+            });
+
+            // Chart 4: Dedicated New Sentiments Pie/Doughnut Chart (Session Only)
+            var ctxNewSentiment = document.getElementById('newSentimentChart').getContext('2d');
+            if(newSentimentChartInstance) newSentimentChartInstance.destroy();
+            newSentimentChartInstance = new Chart(ctxNewSentiment, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(newSentimentCounts),
+                    datasets: [{ data: Object.values(newSentimentCounts), backgroundColor: ['#2ce679', '#3498db', '#95a5a6', '#f39c12', '#e74c3c', '#8e44ad'] }]
+                },
+                options: { responsive: true }
+            });
+        });
+    </script>
+</body>
+</html>
