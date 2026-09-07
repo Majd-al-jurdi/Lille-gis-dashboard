@@ -100,8 +100,12 @@
         
         <button id="btnExportGeoJSON" class="form-control btn btn-success" style="margin-bottom: 10px;">💾 Télécharger vos points</button>     
         <hr>
+        <hr>
+        <h4 class="text-center" style="text-decoration: underline;"> Documents & Rapports </h4>
+        <button id="btnOpenUploadModal" class="form-control btn btn-primary" data-toggle="modal" data-target="#uploadModal" style="margin-bottom: 10px; font-weight: bold;">📄 Ajouter un Rapport (Membres)</button>
         
-        <h4 class="text-center" style="text-decoration: underline;">Actions Rapides</h4>
+
+        <h4 class="text-center" style="text-decoration: underline;"> Actions Rapides <h4>
         <div class="form-group" style="padding: 5px 0;">
             <label for="buffer-input">Distance du Buffer (mètres):</label>
             <input type="number" id="buffer-input" class="form-control" value="100" min="1" max="5000" placeholder="Entrez la distance...">
@@ -200,6 +204,37 @@
             </div>
             <hr>
             <div id="dashboardSummary" class="text-center" style="font-size: 16px; font-weight: bold;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload PDF Modal Container -->
+    <div class="modal fade" id="uploadModal" tabindex="-1" role="dialog" aria-labelledby="uploadModalLabel">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header" style="background-color: #0f4c81; color: white;">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:white;"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="uploadModalLabel">Téléverser un document PDF</h4>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted" style="font-size: 12px;">Réservé aux utilisateurs connectés. Les documents seront attachés à votre compte.</p>
+            
+            <div class="form-group">
+                <label for="doc-title">Titre / Description du document :</label>
+                <input type="text" id="doc-title" class="form-control" placeholder="Ex: Rapport d'inspection du parc">
+            </div>
+            
+            <div class="form-group">
+                <label for="pdf-file-input">Sélectionnez le fichier PDF :</label>
+                <input type="file" id="pdf-file-input" class="form-control" accept="application/pdf">
+            </div>
+            
+            <div id="upload-status" style="margin-top: 10px; font-size: 13px; font-weight: bold; text-align: center;"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Fermer</button>
+            <button type="button" id="btnConfirmUpload" class="btn btn-primary">📤 Envoyer le document</button>
           </div>
         </div>
       </div>
@@ -780,6 +815,87 @@
                 },
                 options: { responsive: true }
             });
+        });
+
+        /* ==========================================================
+           8. HANDLE PDF UPLOAD FROM MODAL
+           ========================================================== */
+        document.getElementById('btnConfirmUpload').addEventListener('click', async function () {
+            const statusDiv = document.getElementById('upload-status');
+            const title = document.getElementById('doc-title').value.trim();
+            const fileInput = document.getElementById('pdf-file-input');
+            const file = fileInput.files[0];
+
+            // 1. Guard Clauses: Check authentication
+            if (!currentUser) {
+                statusDiv.style.color = "red";
+                statusDiv.innerText = "🔒 Erreur : Vous devez être connecté pour téléverser un fichier !";
+                return;
+            }
+            if (!title || !file) {
+                statusDiv.style.color = "red";
+                statusDiv.innerText = "⚠️ Veuillez renseigner un titre et sélectionner un fichier.";
+                return;
+            }
+            if (file.type !== "application/pdf") {
+                statusDiv.style.color = "red";
+                statusDiv.innerText = "⚠️ Seuls les fichiers PDF sont acceptés.";
+                return;
+            }
+
+            statusDiv.style.color = "blue";
+            statusDiv.innerText = "Téléversement en cours. Veuillez patienter...";
+            document.getElementById('btnConfirmUpload').disabled = true;
+
+            try {
+                // 2. Format unique filepath
+                const cleanFileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+                const filePath = `${currentUser.id}/${cleanFileName}`;
+
+                // 3. Send physical file to Supabase Storage
+                const { data: uploadData, error: uploadError } = await dbClient
+                    .storage
+                    .from('user-documents')
+                    .upload(filePath, file, { cacheControl: '3600', upsert: false });
+
+                if (uploadError) throw uploadError;
+
+                // 4. Get public URL to view the file
+                const { data: { publicUrl } } = dbClient
+                    .storage
+                    .from('user-documents')
+                    .getPublicUrl(filePath);
+
+                // 5. Save the metadata and link to PostgreSQL
+                const { error: dbError } = await dbClient
+                    .from('document_submissions')
+                    .insert([{
+                        user_id: currentUser.id,
+                        title: title,
+                        file_name: file.name,
+                        pdf_url: publicUrl
+                    }]);
+
+                if (dbError) throw dbError;
+
+                statusDiv.style.color = "green";
+                statusDiv.innerText = "✅ Document téléversé avec succès !";
+                
+                // Clear the form for next time
+                setTimeout(() => {
+                    document.getElementById('doc-title').value = '';
+                    fileInput.value = '';
+                    statusDiv.innerText = '';
+                    document.getElementById('btnConfirmUpload').disabled = false;
+                    $('#uploadModal').modal('hide');
+                }, 2000);
+
+            } catch (err) {
+                console.error("Upload error:", err);
+                statusDiv.style.color = "red";
+                statusDiv.innerText = "❌ Échec: " + err.message;
+                document.getElementById('btnConfirmUpload').disabled = false;
+            }
         });
     </script>
 </body>
