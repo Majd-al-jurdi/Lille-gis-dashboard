@@ -58,9 +58,26 @@
 </head>
 
 <body>
-    <!-- Header Section -->
-    <div id="header" class="col-md-12">
+    <!-- Header Section with Authentication -->
+    <div id="header" class="col-md-12" style="position: relative;">
         <h1 class="text-center" style="margin-top: 15px; font-weight: bold;">Lille WebGIS - Sentiment Dashboard</h1>
+        
+        <!-- Auth Container (Top Right) -->
+        <div id="auth-container" style="position: absolute; top: 15px; right: 20px;">
+            <!-- Logged Out State -->
+            <div id="logged-out-ui" style="display: flex; gap: 5px;">
+                <input type="email" id="auth-email" placeholder="Email (student@lille.fr)" class="form-control input-sm" style="width: 200px; color: black;">
+                <input type="password" id="auth-password" placeholder="Password" class="form-control input-sm" style="width: 120px; color: black;">
+                <button id="btn-login" class="btn btn-sm btn-success" style="font-weight: bold;">Connexion</button>
+                <button id="btn-signup" class="btn btn-sm btn-info" style="font-weight: bold;">Créer un compte</button>
+            </div>
+            
+            <!-- Logged In State -->
+            <div id="logged-in-ui" style="display: none; align-items: center; gap: 15px;">
+                <span id="user-greeting" style="font-weight: bold; font-size: 14px; color: white;"></span>
+                <button id="btn-logout" class="btn btn-sm btn-danger" style="font-weight: bold;">Déconnexion</button>
+            </div>
+        </div>
     </div>
 
     <!-- Sidebar Control Panel -->
@@ -199,6 +216,61 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmbnhzc3RsYXJwZXdweGRwdWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0NjM5MjcsImV4cCI6MjEwNDAzOTkyN30.edBN5TRgRNVHNaj1cCIaM7CoYXcvfJt-G-XIKeLnGl0';
         // Use dbClient to prevent collision with window.supabase
         const dbClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        /* ==========================================================
+           1.1. AUTHENTICATION & USER SESSION MANAGEMENT
+           ========================================================== */
+        let currentUser = null;
+
+        // 1. Update UI based on login status
+        function updateAuthUI(user) {
+            currentUser = user;
+            if (user) {
+                document.getElementById('logged-out-ui').style.display = 'none';
+                document.getElementById('logged-in-ui').style.display = 'flex';
+                document.getElementById('user-greeting').innerText = "👤 Bonjour, " + user.email;
+            } else {
+                document.getElementById('logged-out-ui').style.display = 'flex';
+                document.getElementById('logged-in-ui').style.display = 'none';
+                document.getElementById('auth-password').value = ''; 
+            }
+        }
+
+        // 2. Check if user is already logged in on page load
+        async function checkSession() {
+            const { data: { session } } = await dbClient.auth.getSession();
+            if (session) updateAuthUI(session.user);
+        }
+        checkSession();
+
+        // 3. Create Account (Sign Up)
+        document.getElementById('btn-signup').addEventListener('click', async function() {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            if (!email || !password) return alert("Veuillez entrer un email et un mot de passe.");
+
+            const { data, error } = await dbClient.auth.signUp({ email, password });
+            if (error) alert("Erreur d'inscription: " + error.message);
+            else alert("Compte créé ! Vérifiez votre boîte mail si la confirmation est activée, sinon connectez-vous directement.");
+        });
+
+        // 4. Login
+        document.getElementById('btn-login').addEventListener('click', async function() {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            if (!email || !password) return alert("Veuillez entrer vos identifiants.");
+
+            const { data, error } = await dbClient.auth.signInWithPassword({ email, password });
+            if (error) alert("Échec de la connexion: " + error.message);
+            else updateAuthUI(data.user);
+        });
+
+        // 5. Logout
+        document.getElementById('btn-logout').addEventListener('click', async function() {
+            await dbClient.auth.signOut();
+            updateAuthUI(null);
+            alert("Vous êtes déconnecté.");
+        });
 
         /* ==========================================================
            2. MAP INITIALIZATION & BASE LAYERS
@@ -513,15 +585,21 @@
             }
         });
 
-        // Cloud Batch Insert via Supabase
+        // Cloud Batch Insert via Supabase (Protected)
         $("#btnSaveSession").on('click', async function () {
+            if (!currentUser) {
+                alert("🔒 Accès Refusé : Vous devez vous connecter en haut à droite pour ajouter des points sur la carte.");
+                return;
+            }
+
             var unsavedPoints = trackedUserFeaturesList.filter(item => !item.properties.saved);
             if (unsavedPoints.length === 0) { alert("Aucun nouveau point à sauvegarder !"); return; }
 
             const insertPayload = unsavedPoints.map(pt => ({
                 feeling: pt.properties.feeling,
                 created_at: pt.properties.timestamp,
-                geom: `SRID=4326;POINT(${pt.geometry.coordinates[0]} ${pt.geometry.coordinates[1]})`
+                geom: `SRID=4326;POINT(${pt.geometry.coordinates[0]} ${pt.geometry.coordinates[1]})`,
+                user_id: currentUser.id // Attaches the database ID of the logged-in student
             }));
 
             const { data, error } = await dbClient.from('user_sentiments').insert(insertPayload);
