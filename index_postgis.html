@@ -12,7 +12,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.0.2/Control.FullScreen.css" />
     
     <!-- JavaScript Dependencies -->
-    <script src="https://unpkg.com/leaflet@1.0.1/dist/leaflet.js"></script>
+
+    << /span>script src="https://unpkg.com/leaflet@1.0.1/dist/leaflet.js">script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.0.2/Control.FullScreen.js"></script>
     <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
@@ -289,16 +290,42 @@
             else alert("Compte créé ! Vérifiez votre boîte mail si la confirmation est activée, sinon connectez-vous directement.");
         });
 
-        // 4. Login
+       // 4. Login with Brute-Force Strike Counter
+        let failedLoginAttempts = 0;
+        const maxAttempts = 7; // Lock the interface after 7 wrong guesses
+
         document.getElementById('btn-login').addEventListener('click', async function() {
+            // Guard clause if they are already locked out
+            if (failedLoginAttempts >= maxAttempts) {
+                alert("🔒 Accès bloqué. Security protocols engaged. A 6-character authorization code is now required to proceed.");
+                return;
+            }
+
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
+            
             if (!email || !password) return alert("Veuillez entrer vos identifiants.");
 
             const { data, error } = await dbClient.auth.signInWithPassword({ email, password });
-            if (error) alert("Échec de la connexion: " + error.message);
-            else updateAuthUI(data.user);
-        });
+            
+            if (error) {
+                failedLoginAttempts++;
+                
+                if (failedLoginAttempts >= maxAttempts) {
+                    // Disable the button visually to make it clear they are blocked
+                    document.getElementById('btn-login').disabled = true;
+                    document.getElementById('btn-login').style.background = "#95a5a6";
+                    alert("Trop de tentatives échouées. Interface verrouillée. Un code d'autorisation à 6 caractères est désormais requis.");
+                } else {
+                    // Vague error message to not give away too much info
+                    alert(`Identifiants non reconnus. Tentatives restantes : ${maxAttempts - failedLoginAttempts}`);
+                }
+            } else {
+                // Reset the strike counter upon a successful login
+                failedLoginAttempts = 0; 
+                updateAuthUI(data.user);
+            }
+});
 
         // 5. Logout
         document.getElementById('btn-logout').addEventListener('click', async function() {
