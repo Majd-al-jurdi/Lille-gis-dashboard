@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Notebook Trigger</title>
+</head>
+<body style="font-family: sans-serif; text-align: center; padding: 20px; background: transparent;">
+    <button id="run-sim" style="background:#0ea5e9; color:white; padding:10px 20px; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">
+        🚀 Run Space Syntax Notebook
+    </button>
+    <p id="status-text" style="color: #64748b; font-size: 13px; margin-top: 10px;">Ready to run.</p>
+
+    <script>
+    document.getElementById('run-sim').addEventListener('click', async function() {
+        const statusDiv = document.getElementById('status-text');
+        statusDiv.innerHTML = '<span style="color:#f59e0b;">⏳ Waking up ArcGIS Notebook Server... (This will cost credits)</span>';
+
+        // Paste your temporary active token here for testing
+        const token = "a9GQs42VkH4_RhurPU0RsVw..-1kiEhXwFKADQygyBkzOtDmn44jKwRutvGjTmwYi7nY11TSbjfmsSy3EgZuhmsI-GRqYA2KuwC8yzMmDk38zcsYNKzdzLbZPN0QwVr8VI-liP72pZ1LeI30Y-ElaLeOOWWbXdMXRZBLFiN_8gAO7302JgA_1Uu7XODuuPUl23uhIOiMxO-cymuGGwhxH95S1JMckza07306LILjEJJNu4l7y88BnIvdetxJMaxMaYzyNECVGld8."; 
+        const notebookItemId = "48b4aeac6c714e588396e5e85f37f1cc";
+        const url = `https://notebooks.arcgis.com/admin/notebook/executeNotebook`;
+
+        const formData = new URLSearchParams();
+        formData.append('itemId', notebookItemId);
+        formData.append('f', 'json');
+        formData.append('token', token);
+        
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            });
+
+            const data = await response.json();
+            
+            if (data.status === "success" || data.jobId) {
+                 statusDiv.innerHTML = '<span style="color:#10b981;">✅ Job submitted! Supabase is computing...</span>';
+            } else {
+                 throw new Error(data.error?.message || "Notebook failed to start.");
+            }
+        } catch (error) {
+            statusDiv.innerHTML = '<span style="color:#e11d48;">❌ Engine failed. Check console.</span>';
+            console.error(error);
+        }
+    });
+    </script>
+</body>
+</html>
