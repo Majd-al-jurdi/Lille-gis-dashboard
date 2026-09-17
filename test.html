@@ -9,6 +9,8 @@
         🚀 Run Space Syntax Notebook
     </button>
     <p id="status-text" style="color: #64748b; font-size: 13px; margin-top: 10px;">Ready to run.</p>
+    <button id="btnExportGeoJSON" style="background:#10b981; color:white; padding:10px 20px; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">
+    💾 Télécharger les résultats (GeoJSON) </button>
 
     <script>
     document.getElementById('run-sim').addEventListener('click', async function() {
@@ -43,6 +45,37 @@
             statusDiv.innerHTML = '<span style="color:#e11d48;">❌ Engine failed. Check console.</span>';
             console.error(error);
         }
+    });
+    document.getElementById('btnExportGeoJSON').addEventListener('click', function () {
+    // Note: Replace 'calculatedFeaturesArray' with the actual variable 
+    // holding your computed Space Syntax or Turf.js features
+    if (calculatedFeaturesArray.length === 0) {
+        alert("Veuillez d'abord exécuter l'analyse sur la carte !");
+        return;
+    }
+
+    // 1. Package the array into a standard GeoJSON FeatureCollection framework
+    var completeExportGeoJSONPayload = {
+        type: "FeatureCollection",
+        features: calculatedFeaturesArray
+    };
+
+    // 2. Transform the raw javascript object to printable formatted text data
+    var textDataStringData = JSON.stringify(completeExportGeoJSONPayload, null, 2)[cite: 1];
+    
+    // 3. Build the absolute binary blob resource payload
+    var blobPayloadChannel = new Blob([textDataStringData], { type: "application/json" })[cite: 1];
+    
+    // 4. Create a temporary anchor element to trigger the download execution pipeline
+    var temporaryDownloadAnchorElement = document.createElement('a')[cite: 1];
+    temporaryDownloadAnchorElement.download = 'analyse_reseau.geojson'[cite: 1];
+    temporaryDownloadAnchorElement.href = window.URL.createObjectURL(blobPayloadChannel)[cite: 1];
+    temporaryDownloadAnchorElement.style.display = 'none'[cite: 1];
+    
+    // 5. Autotrigger browser file download and clean up
+    document.body.appendChild(temporaryDownloadAnchorElement)[cite: 1];
+    temporaryDownloadAnchorElement.click()[cite: 1];
+    document.body.removeChild(temporaryDownloadAnchorElement)[cite: 1];
     });
     </script>
 </body>
