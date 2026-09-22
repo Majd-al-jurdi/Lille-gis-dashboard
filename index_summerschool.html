@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SummerSchool26 - RESILIENCE and INCLUSION</title>
+    
+    <!-- CSS Dependencies -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.0.2/Control.FullScreen.css" />
+    
+    <!-- JavaScript Dependencies -->
+    <script src="https://unpkg.com/leaflet@1.0.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.0.2/Control.FullScreen.js"></script>
+    <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-geometryutil@0.9.3/src/leaflet.geometryutil.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        #header { height: 75px; background-color: #343355; color: white; }
+        #mapdiv { height: calc(100vh - 150px); background-color: #e5e9f0; transition: cursor 0.2s; }
+        #side_panel { height: calc(100vh - 150px); background-color: rgb(230, 232, 238); overflow-y: auto; padding-bottom: 20px; }
+        #footer { 
+            height: 75px; 
+            background-color: #343355; 
+            color: white; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            padding: 0 20px; 
+        }
+
+        /* Table of Contents Control Panel */
+        .toc-panel {
+            position: absolute; top: 10px; right: 50px; z-index: 1000;
+            background: white; padding: 10px; border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4); max-width: 250px; font-family: Arial, sans-serif;
+        }
+        .toc-header { font-weight: bold; cursor: pointer; padding-bottom: 5px; border-bottom: 1px solid #ccc; user-select: none; }
+        .toc-content { margin-top: 8px; }
+
+        /* Map Legend Panel */
+        .map-legend {
+            position: absolute; bottom: 30px; right: 10px; z-index: 999;
+            background: rgba(255, 255, 255, 0.9); padding: 10px; border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2); font-family: Arial, sans-serif; font-size: 12px; line-height: 18px;
+        }
+        .legend-color-box { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.8; border: 1px solid #555; }
+        .legend-line { width: 18px; height: 4px; float: left; margin: 7px 8px 0 0; }
+
+        /* North Arrow Overlay */
+        .north-arrow-control {
+            position: absolute; top: 90px; left: 10px; z-index: 1000;
+            background: white; padding: 5px; border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4); width: 34px; height: 34px; text-align: center;
+        }
+
+        /* Instructor Mode Toggle Switch */
+        .instructor-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+            margin: 0;
+        }
+        .instructor-switch input { opacity: 0; width: 0; height: 0; }
+        .instructor-slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1; transition: .3s; border-radius: 22px;
+        }
+        .instructor-slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px; left: 2px; bottom: 2px;
+            background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .instructor-switch input:checked + .instructor-slider { background-color: #0284c7; }
+        .instructor-switch input:checked + .instructor-slider:before { transform: translateX(22px); }
+
+        /* Sidebar Section Styling */
+        .sidebar-section-student {
+            background-color: rgba(230, 242, 255, 0.85);
+            border: 1px solid #b6d4fe;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+        .sidebar-section-instructor {
+            background-color: rgba(255, 243, 205, 0.85);
+            border: 1px solid #ffeeba;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        /* Permanent Station Label Styling */
+        .station-label {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #0f4c81;
+            border-radius: 3px;
+            padding: 2px 5px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #0f4c81;
+            white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+            text-align: center;
+            line-height: 1.3;
+        }
+        .footer-content h4 {
+            margin: 0 0 3px 0;
+            font-size: 13px;
+        }
+        .footer-content a {
+            font-size: 11px;
+            color: #60a5fa;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header Section with Three-Tier Title and Authentication -->
+    <div id="header" class="col-md-12" style="position: relative; min-height: 80px; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; flex-direction: column; justify-content: center;">
+            <h2 style="margin: 0; font-size: 20px; font-weight: bold; color: white; letter-spacing: 0.5px; text-transform: uppercase;">RESILIENCE and INCLUSION</h2>
+            <h4 style="margin: 3px 0 0 0; font-size: 15px; font-weight: 600; color: #e2e8f0;">Blended Intensive Programme</h4>
+            <span style="font-size: 11px; color: #cbd5e1; font-weight: 500; margin-top: 2px;">21 to 26 September 2026</span>
+        </div>
+
+        <div id="auth-container">
+            <div id="logged-out-ui" style="display: flex; gap: 5px; align-items: center;">
+                <input type="email" id="auth-email" placeholder="Email (user@mail.fr)" class="form-control input-sm" style="width: 180px; color: black;">
+                <input type="password" id="auth-password" placeholder="Password (6 chars min)" class="form-control input-sm" style="width: 180px; color: black;">
+                <button id="btn-login" class="btn btn-sm btn-success" style="font-weight: bold;">Login</button>
+                <button id="btn-signup" class="btn btn-sm btn-info" style="font-weight: bold;">Sign Up</button>
+            </div>
+            <div id="logged-in-ui" style="display: none; align-items: center; gap: 15px;">
+                <span id="user-greeting" style="font-weight: bold; font-size: 13px; color: white;"></span>
+                <button id="btn-logout" class="btn btn-sm btn-danger" style="font-weight: bold;">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Control Panel -->
+    <div id="side_panel" class="col-md-3">
+        <br><h4 class="text-left" style="margin-top: 10px; font-weight: bold;">Project Objectives</h4>
+        <p style="font-size: 12px; color: #0f0f0f; text-align: justify; margin-right: 10px;">
+        The workshop will focus on the analysis and diagnosis of selected sites in the city of Lille. These areas currently experience conflicts related to the transportation system and the use of public space. The proposals should aim to mitigate existing conflicts and generate successful, inclusive urban spaces. 
+        <br><br>
+        Climate adaptation will constitute a major component of the workshop. Projects must align with Lille’s ecological transition strategy and address the city’s principal environmental challenges, such as urban heat islands and heavy rainfall. Historical and heritage dimensions, as well as future mobility plans, must also be carefully considered. Lille’s population is socially and economically diverse and includes residents, students, and tourists. The proposed projects must respond to the needs of these different user groups and contribute to the development of a hospitable and inclusive city
+        </p>
+        <p style="font-size: 12px; color: #0f0f0f; text-align: justify; margin-right: 10px;">
+            <b style="font-size: 13px;">Partner Institutions: </b><br style="margin-bottom: 6px;">
+            • Rotterdam University of Applied Sciences (4 professors + 23 students) <Br>
+            • Technische Hochschule Lübeck | University of Applied Sciences (1 professors + 8 students)<Br>
+            • Faculty of Engineering / Cairo University (2 professors + 11 students)<Br>
+            • Faculty of Civil and Environmental Engineering / Gdańsk University of Technology (2 professors + 10 students)<Br>
+            • JUNIA / Catholic University of Lille (3 professors + 15 students)<Br>
+        </p><br>
+
+        <!-- SECTION 1: STUDENTS -->
+        <div class="sidebar-section-student">
+            <h4 class="text-left" style="margin-top: 0; color: #084298; font-weight: bold;">🎓 Working Group (1 student per group)</h4>
+            <p style="font-size: 11px; color: #555;">Submit your project deliverables and associate them with a metro station.</p>
+            <button id="btnOpenUploadModal" class="form-control btn btn-primary" data-toggle="modal" data-target="#uploadModal" style="margin-bottom: 10px; font-weight: bold;">📄 Add Project Deliverables</button>
+        </div>
+
+        <!-- SECTION 2: INSTRUCTORS -->
+        <div class="sidebar-section-instructor">
+            <h4 class="text-left" style="margin-top: 0; color: #664d03; font-weight: bold;">👨‍🏫 Instructor Section</h4>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
+                <span style="font-size: 11px; font-weight: bold; color: #413300;">Review student submissions and current progress</span>
+                <label class="instructor-switch">
+                    <input type="checkbox" id="toggleInstructorSwitch">
+                    <span class="instructor-slider"></span>
+                </label>
+            </div>
+        </div><br>
+
+        <div class="sidebar-section-contact">
+            <h6 class="text-left" style="margin-top: 0; color: #2c3e50; font-weight: bold;">Contact Information</h6>
+            <p style="font-size: 11px; color: #555;">
+                Ana RUIZ BOWEN, Academic Coordinator ana.ruiz-bowen@junia.com <br>
+                Vedrana IKALOVIC, Academic Coordinator vedrana.ikalovic@junia.com<br>
+                Véronique BONTE, Administrative Coordinator veronique.bonte@junia.com<br>
+                Vira WANNEPAIN, International coordinator vira.wannepain@junia.com
+            </p></div>
+    </div>
+
+    <!-- Map Viewport -->
+    <div id="mapdiv" class="col-md-9" style="position: relative;">
+        <!-- Table of Contents Widget -->
+        <div class="toc-panel">
+            <div class="toc-header" onclick="toggleTOC()">Map Layers <span id="toc-toggle-icon" style="float:right;">▼</span></div>
+            <div class="toc-content" id="toc-items">
+                <div class="checkbox"><label><input type="checkbox" id="layer-osm" checked> Base Map (OSM)</label></div>
+                <div class="checkbox"><label><input type="checkbox" id="layer-railways" checked> Railways</label></div>
+                <div class="checkbox"><label><input type="checkbox" id="layer-metro-stations" checked> Metro Stations</label></div>
+            </div>
+        </div>
+
+        <!-- Legend Widget -->
+        <div class="map-legend">
+            <h4><b>Legend</b></h4>
+            <div><img src="https://upload.wikimedia.org/wikipedia/commons/3/38/Lille_Metro_Logo.svg" width="16" height="16" style="float:left; margin-right:8px;" />Metro Station</div>
+            <div><div class="legend-line" style="background:#f1c40f;"></div>Metro Line 1 </div>
+            <div><div class="legend-line" style="background:#e74c3c;"></div>Metro Line 2</div>
+            <div><div class="legend-line" style="background:#7f8c8d; border-style: dashed;"></div>Railway</div>
+        </div>       
+
+        <!-- North Arrow Widget -->
+        <div class="north-arrow-control">
+            <span style="font-weight:bold; font-size:16px; color:#c0392b; display:block; margin-top:-2px;">▲</span>
+            <span style="font-size:10px; font-weight:bold; display:block; margin-top:-4px;">N</span>
+        </div>
+    </div>
+
+    <!-- Footer Bar -->
+    <div id="footer" class="col-md-12">
+        <div style="display: flex; align-items: center;">
+            <img src="footer.png" alt="Footer Logo" style="max-height: 50px; border-radius: 1px;" />
+        </div>
+        <div class="footer-content">
+            <h4 id="map_coords">Latitude: 50.6333 Longitude: 3.06667 Zoom Level: 14</h4>
+            <a href="https://www.junia.com/en/academics/master-of-science-in-smart-and-resilient-cities/" target="_blank">Smart & Resilient Cities Research Team 2026[cite: 15]</a>
+        </div>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <!-- Upload Project Deliverable Modal Container -->
+    <div class="modal fade" id="uploadModal" tabindex="-1" role="dialog" aria-labelledby="uploadModalLabel">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header" style="background-color: #0f4c81; color: white;">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:white;"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="uploadModalLabel">Upload Project Deliverables (Student Group)</h4>
+          </div>
+          <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <p class="text-muted" style="font-size: 12px;">Restricted to logged-in student members. Attach your files by category and link them to a metro station.</p>
+            
+            <div class="form-group">
+                <label for="student-group-name">Student Group Name / Project ID:</label>
+                <input type="text" id="student-group-name" class="form-control" placeholder="E.g., Group 3 - ESN / BTP">
+            </div>
+
+            <div class="form-group">
+                <label for="metro-station-select">Associated Metro Station (nom_statio):</label>
+                <select id="metro-station-select" class="form-control">
+                    <option value="">-- Select a Metro Station --</option>
+                </select>
+            </div>
+
+            <hr style="margin: 15px 0;">
+            <p style="font-size: 13px; font-weight: bold; color: #0f4c81;">📁 Select Files by Document Type:</p>
+
+            <!-- File Row 1: Project Report -->
+            <div class="panel panel-default" style="padding: 12px; background-color: #f8fafc; border-color: #cbd5e1;">
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <label style="font-size: 12px; color: #1e293b;">📄 Project Report File:</label>
+                    <input type="file" id="file-report" class="form-control input-sm" accept="application/pdf,image/png,image/jpeg">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <input type="text" id="title-report" class="form-control input-sm" placeholder="Report Title / Description (Optional)">
+                </div>
+            </div>
+
+            <!-- File Row 2: Diagnostic Poster -->
+            <div class="panel panel-default" style="padding: 12px; background-color: #f8fafc; border-color: #cbd5e1;">
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <label style="font-size: 12px; color: #1e293b;">🖼️ Diagnostic Poster File:</label>
+                    <input type="file" id="file-poster" class="form-control input-sm" accept="application/pdf,image/png,image/jpeg">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <input type="text" id="title-poster" class="form-control input-sm" placeholder="Poster Title / Description (Optional)">
+                </div>
+            </div>
+            
+            <div id="upload-status" style="margin-top: 10px; font-size: 13px; font-weight: bold; text-align: center;"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            <button type="button" id="btnConfirmUpload" class="btn btn-primary">📤 Upload Deliverables</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Instructor Grading & Submissions Pop-up Modal -->
+    <div class="modal fade" id="instructorGradingModal" tabindex="-1" role="dialog" aria-labelledby="instructorGradingModalLabel">
+      <div class="modal-dialog modal-lg" role="document" style="width: 90%;">
+        <div class="modal-content">
+          <div class="modal-header" style="background-color: #664d03; color: white;">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:white;"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="instructorGradingModalLabel">👨‍🏫 Predefined Multi-Instructor Evaluation Panel</h4>
+          </div>
+          <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <p class="text-muted" style="font-size: 12px;">You can view all student submissions and categories. You are only permitted to edit your own designated email column.</p>
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped" id="instructor-grading-table" style="font-size: 11px;">
+                    <thead>
+                        <tr style="background-color: #f8f9fa;" id="instructor-table-head-row"></tr>
+                    </thead>
+                    <tbody id="instructor-table-body"></tbody>
+                </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PDF/Image Viewer Modal (Opens directly in-interface) -->
+    <div class="modal fade" id="pdfViewerModal" tabindex="-1" role="dialog" aria-labelledby="pdfViewerModalLabel">
+      <div class="modal-dialog modal-lg" role="document" style="width: 85%; height: 90vh;">
+        <div class="modal-content" style="height: 100%;">
+          <div class="modal-header" style="background-color: #0f4c81; color: white;">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:white;"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="pdfViewerModalLabel">Document Viewer</h4>
+          </div>
+          <div class="modal-body" style="height: calc(100% - 56px); padding: 0;" id="viewer-body-container">
+            <iframe id="pdf-iframe" src="" style="width: 100%; height: 100%; border: none; display:block;"></iframe>
+            <div id="no-record-msg" style="display:none; text-align: center; padding: 50px; font-size: 18px; color: #e11d48; font-weight: bold;">
+                ❌ No record submitted for this station yet.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         JAVASCRIPT LOGIC - ORGANIZED & STRUCTURED
+         ===================================================================== -->
+    <script>
+        const supabaseUrl = 'https://qfnxsstlarpewpxdpufg.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmbnhzc3RsYXJwZXdweGRwdWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0NjM5MjcsImV4cCI6MjEwNDAzOTkyN30.edBN5TRgRNVHNaj1cCIaM7CoYXcvfJt-G-XIKeLnGl0';
+        const dbClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        const MASTER_ADMIN_EMAIL = "majd.h.jurdi@gmail.com"; 
+
+        const PREDEFINED_INSTRUCTORS = {
+            "majd.al-jurdi@junia.com": { col: "score_1", label: "Majd AL JURDI" },
+            "vedrana.ikalovic@junia.com": { col: "score_2", label: "Vedrana IKALOVIC" },
+            "instructor3@lille.fr": { col: "score_3", label: "instructor3@lille.fr" },
+            "instructor4@lille.fr": { col: "score_4", label: "instructor4@lille.fr" },
+            "instructor5@lille.fr": { col: "score_5", label: "instructor5@lille.fr" },
+            "instructor6@lille.fr": { col: "score_6", label: "instructor6@lille.fr" },
+            "instructor7@lille.fr": { col: "score_7", label: "instructor7@lille.fr" },
+            "instructor8@lille.fr": { col: "score_8", label: "instructor8@lille.fr" },
+            "instructor9@lille.fr": { col: "score_9", label: "instructor9@lille.fr" },
+            "instructor10@lille.fr": { col: "score_10", label: "instructor10@lille.fr" }
+        };
+
+        let currentUser = null;
+
+        function updateAuthUI(user) {
+            currentUser = user;
+            if (user) {
+                document.getElementById('logged-out-ui').style.display = 'none';
+                document.getElementById('logged-in-ui').style.display = 'flex';
+                document.getElementById('user-greeting').innerText = "👤 Hello, " + user.email;
+            } else {
+                document.getElementById('logged-out-ui').style.display = 'flex';
+                document.getElementById('logged-in-ui').style.display = 'none';
+                document.getElementById('auth-password').value = ''; 
+            }
+        }
+
+        async function checkSession() {
+            const { data: { session } } = await dbClient.auth.getSession();
+            if (session) updateAuthUI(session.user);
+        }
+        checkSession();
+
+        document.getElementById('btn-signup').addEventListener('click', async function() {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            if (!email || !password) return alert("Please enter email and password.");
+            const { data, error } = await dbClient.auth.signUp({ email, password });
+            if (error) alert("Sign up error: " + error.message);
+            else alert("Account created successfully! You can now log in.");
+        });
+
+        document.getElementById('btn-login').addEventListener('click', async function() {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            if (!email || !password) return alert("Please enter your credentials.");
+            const { data, error } = await dbClient.auth.signInWithPassword({ email, password });
+            if (error) {
+                alert("Login failed: " + error.message);
+            } else {
+                updateAuthUI(data.user);
+            }
+        });
+
+        document.getElementById('btn-logout').addEventListener('click', async function() {
+            await dbClient.auth.signOut();
+            updateAuthUI(null);
+            alert("You have been logged out.");
+        });
+
+        var mymap = L.map('mapdiv', {
+            fullscreenControl: true,
+            fullscreenControlOptions: { position: 'topleft' }
+        });
+        mymap.setView([50.6333, 3.06667], 14);
+
+        var backgroundLayer = L.tileLayer('https://{s}.tile.osm.org/{z}/{x}/{y}.png').addTo(mymap);
+        L.control.scale({ position: 'bottomleft', imperial: false }).addTo(mymap);
+
+        mymap.on('move', function () {
+            var center = mymap.getCenter();
+            var zoom = mymap.getZoom();
+            $("#map_coords").html("Latitude: " + center.lat.toFixed(5) + " Longitude: " + center.lng.toFixed(5) + " Zoom Level: " + zoom);
+        });
+
+        var metroStationIcon = L.icon({
+            iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/38/Lille_Metro_Logo.svg',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+            popupAnchor: [0, -12]
+        });
+
+        var rawStationsBackup = null;
+        var allSubmissionsList = [];
+
+        async function loadSubmissionsCache() {
+            const { data } = await dbClient.from('summerschool_submissions26').select('metro_station, pdf_url, title, student_group, deliverable_type');
+            if (data) {
+                allSubmissionsList = data;
+            }
+        }
+        loadSubmissionsCache();
+
+        var stationsGeoJSONLayer = L.geoJSON(null, {
+            pointToLayer: function (feature, latlng) {
+                var stationName = feature.properties.nom_statio || "Station";
+                var marker = L.marker(latlng, { icon: metroStationIcon });
+                
+                var hasSubmission = allSubmissionsList.some(s => s.metro_station && s.metro_station.trim().toLowerCase() === stationName.trim().toLowerCase());
+                
+                if (hasSubmission) {
+                    marker.bindTooltip(stationName, {
+                        permanent: true,
+                        direction: 'bottom',
+                        className: 'station-label',
+                        offset: [0, 2]
+                    });
+                }
+
+                return marker;
+            },
+            onEachFeature: function (feature, layer) {
+                var props = feature.properties;
+                var stationName = props.nom_statio || "Metro Station";
+                
+                var infoHtml = "<h4>🚉 " + stationName + "</h4><hr>";
+                if (props.commune) infoHtml += "<b>Commune:</b> " + props.commune + "<br>";
+                if (props.ligne) infoHtml += "<b>Line:</b> Line " + props.ligne + "<br>";
+
+                var subMatches = allSubmissionsList.filter(s => s.metro_station && s.metro_station.trim().toLowerCase() === stationName.trim().toLowerCase());
+                
+                var popupContainer = $("<div></div>").append(infoHtml);
+
+                if (subMatches.length > 0) {
+                    subMatches.forEach(sub => {
+                        var catLabel = sub.deliverable_type ? `[${sub.deliverable_type}]` : '[Report]';
+                        var projectBtn = $("<button class='btn btn-info btn-xs btn-block open-station-report' data-url='" + sub.pdf_url + "' data-title='" + sub.title + " (" + sub.student_group + ")' style='margin-top: 6px; font-weight: bold;'>📁 " + catLabel + " " + sub.title + "</button>");
+                        popupContainer.append(projectBtn);
+                    });
+                } else {
+                    var noRecordBtn = $("<button class='btn btn-warning btn-xs btn-block open-station-report' data-url='' data-title='" + stationName + "' style='margin-top: 8px;'>📁 View Project Deliverable (None)</button>");
+                    popupContainer.append(noRecordBtn);
+                }
+
+                var popupBtn = $("<button class='btn btn-success btn-xs btn-block' style='margin-top: 6px;'>🔍 Zoom to this station</button>");
+                popupBtn.on('click', function () { mymap.setView(layer.getLatLng(), 17); });
+                popupContainer.append(popupBtn);
+
+                layer.bindPopup(popupContainer[0]);
+            }
+        }).addTo(mymap);
+
+        var railwaysLayer = L.geoJSON(null, {
+            style: function (feature) {
+                var railwayName = String(feature.properties.name || "").toLowerCase();
+                var lineColor = '#7f8c8d';
+                
+                if (railwayName.includes('ligne 1') || railwayName.includes('line 1')) {
+                    lineColor = '#f1c40f';
+                } else if (railwayName.includes('ligne 2') || railwayName.includes('line 2')) {
+                    lineColor = '#e74c3c';
+                }
+
+                return { color: lineColor, weight: 3.5, opacity: 0.9 };
+            },
+            onEachFeature: function (feature, layer) {
+                layer.bindPopup("<b>Railway</b><br>Name: " + (feature.properties.name || "N/A"));
+            }
+        }).addTo(mymap);
+
+        async function loadTransitDataFromSupabase() {
+            await loadSubmissionsCache();
+            const { data: stationsData, error: stError } = await dbClient.from('stations_metro_geojson').select('*');
+            const stationSelect = document.getElementById('metro-station-select');
+
+            if (!stError && stationsData) {
+                var stationFeatures = stationsData.map(row => ({
+                    type: "Feature",
+                    properties: { id: row.objectid, nom_statio: row.nom_statio, commune: row.commune, ligne: row.ligne },
+                    geometry: row.geometry
+                }));
+                rawStationsBackup = { type: "FeatureCollection", features: stationFeatures };
+                stationsGeoJSONLayer.clearLayers();
+                stationsGeoJSONLayer.addData(rawStationsBackup);
+
+                stationSelect.innerHTML = '<option value="">-- Select a Metro Station --</option>';
+                stationsData.forEach(station => {
+                    if (station.nom_statio) {
+                        const opt = document.createElement('option');
+                        opt.value = station.nom_statio;
+                        opt.textContent = station.nom_statio;
+                        stationSelect.appendChild(opt);
+                    }
+                });
+            } else {
+                console.error("Error loading stations_metro_geojson:", stError);
+            }
+
+            const { data: railData, error: railError } = await dbClient.from('railways_geojson').select('*');
+            if (!railError && railData) {
+                var railFeatures = railData.map(row => ({
+                    type: "Feature",
+                    properties: { id: row.osm_id, name: row.name, fclass: row.fclass },
+                    geometry: row.geometry
+                }));
+                railwaysLayer.addData({ type: "FeatureCollection", features: railFeatures });
+            } else {
+                console.error("Error loading railways_geojson:", railError);
+            }
+        }
+        loadTransitDataFromSupabase();
+
+        function toggleTOC() {
+            var items = $("#toc-items");
+            var icon = $("#toc-toggle-icon");
+            items.is(":visible") ? (items.slideUp(), icon.text("▲")) : (items.slideDown(), icon.text("▼"));
+        }
+        
+        $("#layer-osm").on('change', function() { this.checked ? mymap.addLayer(backgroundLayer) : mymap.removeLayer(backgroundLayer); });
+        $("#layer-metro-stations").on('change', function() { this.checked ? mymap.addLayer(stationsGeoJSONLayer) : mymap.removeLayer(stationsGeoJSONLayer); });
+        $("#layer-railways").on('change', function() { this.checked ? mymap.addLayer(railwaysLayer) : mymap.removeLayer(railwaysLayer); });
+
+        $("#station-search").on('input', function () {
+            var selectedValue = $(this).val().trim();
+            if (!rawStationsBackup) return;
+            stationsGeoJSONLayer.clearLayers();
+            $("#station-list-container").empty();
+
+            if (selectedValue === "" || selectedValue.toLowerCase() === "all lines") {
+                stationsGeoJSONLayer.addData(rawStationsBackup);
+            } else {
+                var filteredFeatures = rawStationsBackup.features.filter(function(feat) {
+                    var ligneVal = String(feat.properties.ligne || "");
+                    return ligneVal.includes(selectedValue.trim());
+                });
+                stationsGeoJSONLayer.addData({ type: "FeatureCollection", features: filteredFeatures });
+            }
+        });
+
+        $(document).on('click', '.open-station-report', function(e) {
+            e.preventDefault();
+            const url = $(this).attr('data-url');
+            const title = $(this).attr('data-title');
+
+            document.getElementById('pdfViewerModalLabel').innerText = title;
+            const iframe = document.getElementById('pdf-iframe');
+            const noRecordMsg = document.getElementById('no-record-msg');
+
+            if (url && url !== "") {
+                iframe.style.display = 'block';
+                noRecordMsg.style.display = 'none';
+                iframe.src = url;
+            } else {
+                iframe.style.display = 'none';
+                noRecordMsg.style.display = 'block';
+                iframe.src = '';
+            }
+            $('#pdfViewerModal').modal('show');
+        });
+
+        $('#pdfViewerModal').on('hidden.bs.modal', function () {
+            document.getElementById('pdf-iframe').src = '';
+            document.getElementById('no-record-msg').style.display = 'none';
+            document.getElementById('pdf-iframe').style.display = 'block';
+        });
+
+        document.getElementById('btnConfirmUpload').addEventListener('click', async function () {
+            const statusDiv = document.getElementById('upload-status');
+            const groupName = document.getElementById('student-group-name').value.trim();
+            const stationName = document.getElementById('metro-station-select').value;
+            
+            const fileReportInput = document.getElementById('file-report');
+            const titleReportInput = document.getElementById('title-report').value.trim();
+            const filePosterInput = document.getElementById('file-poster');
+            const titlePosterInput = document.getElementById('title-poster').value.trim();
+
+            if (!currentUser) {
+                statusDiv.style.color = "red";
+                statusDiv.innerText = "🔒 Error: You must be logged in as a student member!";
+                return;
+            }
+            if (!groupName || !stationName) {
+                statusDiv.style.color = "red";
+                statusDiv.innerText = "⚠️ Please provide a Group Name and select a Metro Station.";
+                return;
+            }
+            if (fileReportInput.files.length === 0 && filePosterInput.files.length === 0) {
+                statusDiv.style.color = "red";
+                statusDiv.innerText = "⚠️ Please select at least one file to upload.";
+                return;
+            }
+
+            statusDiv.style.color = "blue";
+            statusDiv.innerText = "Uploading deliverables...";
+            document.getElementById('btnConfirmUpload').disabled = true;
+
+            try {
+                let uploadsToProcess = [];
+
+                if (fileReportInput.files.length > 0) {
+                    uploadsToProcess.push({
+                        file: fileReportInput.files[0],
+                        type: 'Project Report',
+                        title: titleReportInput || 'Project Report'
+                    });
+                }
+
+                if (filePosterInput.files.length > 0) {
+                    uploadsToProcess.push({
+                        file: filePosterInput.files[0],
+                        type: 'Diagnostic Poster',
+                        title: titlePosterInput || 'Diagnostic Poster'
+                    });
+                }
+
+                for (let item of uploadsToProcess) {
+                    const cleanFileName = `${Date.now()}_${item.file.name.replace(/\s+/g, '_')}`;
+                    const filePath = `${currentUser.id}/${cleanFileName}`;
+
+                    const { error: uploadError } = await dbClient.storage
+                        .from('summerschool_submissions26')
+                        .upload(filePath, item.file);
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: { publicUrl } } = dbClient.storage
+                        .from('summerschool_submissions26')
+                        .getPublicUrl(filePath);
+
+                    const { error: dbError } = await dbClient
+                        .from('summerschool_submissions26')
+                        .insert([{
+                            user_id: currentUser.id,
+                            user_email: currentUser.email,
+                            student_group: groupName,
+                            deliverable_type: item.type,
+                            metro_station: stationName,
+                            title: item.title,
+                            file_name: item.file.name,
+                            pdf_url: publicUrl
+                        }]);
+
+                    if (dbError) throw dbError;
+                }
+
+                statusDiv.style.color = "green";
+                statusDiv.innerText = "✅ All deliverables uploaded successfully!";
+                
+                loadTransitDataFromSupabase();
+
+                setTimeout(() => {
+                    document.getElementById('student-group-name').value = '';
+                    document.getElementById('metro-station-select').value = '';
+                    fileReportInput.value = '';
+                    filePosterInput.value = '';
+                    document.getElementById('title-report').value = '';
+                    document.getElementById('title-poster').value = '';
+                    statusDiv.innerText = '';
+                    document.getElementById('btnConfirmUpload').disabled = false;
+                    $('#uploadModal').modal('hide');
+                }, 2000);
+
+            } catch (err) {
+                console.error("Upload error:", err);
+                statusDiv.style.color = "red";
+                statusDiv.innerText = "❌ Failure: " + err.message;
+                document.getElementById('btnConfirmUpload').disabled = false;
+            }
+        });
+
+        let isInstructorMode = false;
+        document.getElementById('toggleInstructorSwitch').addEventListener('change', async function() {
+            if (!currentUser) {
+                alert("🔒 Access denied: Instructor mode is restricted to logged-in users.");
+                this.checked = false;
+                return;
+            }
+
+            const userEmail = currentUser.email.trim().toLowerCase();
+            const isAdmin = (userEmail === MASTER_ADMIN_EMAIL.toLowerCase());
+            const isAuthorizedInstructor = PREDEFINED_INSTRUCTORS.hasOwnProperty(userEmail);
+
+            if (!isAdmin && !isAuthorizedInstructor) {
+                alert("🔒 Access denied: Your email (" + userEmail + ") is not registered as an instructor.");
+                this.checked = false;
+                return;
+            }
+
+            isInstructorMode = this.checked;
+            if (isInstructorMode) {
+                await fetchAndDisplayInstructorTable();
+                $('#instructorGradingModal').modal('show');
+            }
+        });
+
+        $('#instructorGradingModal').on('hidden.bs.modal', function () {
+            document.getElementById('toggleInstructorSwitch').checked = false;
+            isInstructorMode = false;
+        });
+
+        async function fetchAndDisplayInstructorTable() {
+            const headRow = document.getElementById('instructor-table-head-row');
+            const tableBody = document.getElementById('instructor-table-body');
+            
+            let headerHtml = `
+                <th>Group Name</th>
+                <th>Category</th>
+                <th>Station</th>
+                <th>Title</th>
+                <th>Submitted By</th>
+                <th>File / Link</th>
+            `;
+            for (let i = 1; i <= 10; i++) {
+                let labelText = "Inst " + i;
+                for (let emailKey in PREDEFINED_INSTRUCTORS) {
+                    if (PREDEFINED_INSTRUCTORS[emailKey].col === "score_" + i) {
+                        labelText = PREDEFINED_INSTRUCTORS[emailKey].label;
+                        break;
+                    }
+                }
+                headerHtml += `<th>${labelText}</th>`;
+            }
+            headerHtml += `<th>Action</th>`;
+            headRow.innerHTML = headerHtml;
+
+            tableBody.innerHTML = '<tr><td colspan="17" class="text-center">Loading submissions... ⏳</td></tr>';
+
+            const { data, error } = await dbClient
+                .from('summerschool_submissions26')
+                .select('id, student_group, deliverable_type, metro_station, title, user_email, pdf_url, created_at, score_1, score_2, score_3, score_4, score_5, score_6, score_7, score_8, score_9, score_10')
+                .order('created_at', { ascending: false });
+
+            if (error || !data || data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="17" class="text-center text-muted">No submissions found.</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = '';
+            
+            const userEmail = currentUser ? currentUser.email.trim().toLowerCase() : "";
+            const isAdmin = (userEmail === MASTER_ADMIN_EMAIL.toLowerCase());
+            const assignedInstructor = PREDEFINED_INSTRUCTORS[userEmail];
+
+            data.forEach(doc => {
+                const tr = document.createElement('tr');
+                const catType = doc.deliverable_type || 'Project Report';
+
+                let scoreCellsHtml = '';
+                for (let i = 1; i <= 10; i++) {
+                    const colName = `score_${i}`;
+                    const val = doc[colName] !== null && doc[colName] !== undefined ? doc[colName] : '';
+                    const canEditThisCol = isAdmin || (assignedInstructor && assignedInstructor.col === colName);
+
+                    if (canEditThisCol) {
+                        scoreCellsHtml += `<td><input type="number" class="form-control input-sm score-input" data-id="${doc.id}" data-col="${colName}" value="${val}" min="0" max="20" style="width: 55px; background: #fff3cd; font-weight: bold;" title="Your Assigned Column"></td>`;
+                    } else {
+                        scoreCellsHtml += `<td style="color: #64748b; background: #f8fafc;" title="Restricted">${val !== '' ? val : '-'}</td>`;
+                    }
+                }
+
+                tr.innerHTML = `
+                    <td><b>${doc.student_group || 'N/A'}</b></td>
+                    <td><span class="label label-primary">${catType}</span></td>
+                    <td>${doc.metro_station || 'N/A'}</td>
+                    <td>${doc.title}</td>
+                    <td>${doc.user_email || 'N/A'}</td>
+                    <td><a href="${doc.pdf_url}" target="_blank" class="btn btn-xs btn-info">View File</a></td>
+                    ${scoreCellsHtml}
+                    <td>
+                        <button class="btn btn-success btn-xs btn-save-score" data-id="${doc.id}">💾 Save</button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        $(document).on('click', '.btn-save-score', async function() {
+            const rowId = $(this).attr('data-id');
+            const row = $(this).closest('tr');
+            const userEmail = currentUser ? currentUser.email.trim().toLowerCase() : "";
+            const isAdmin = (userEmail === MASTER_ADMIN_EMAIL.toLowerCase());
+            const assignedInstructor = PREDEFINED_INSTRUCTORS[userEmail];
+
+            const inputs = row.find('.score-input');
+            let updatePayload = {};
+
+            inputs.each(function() {
+                const colName = $(this).attr('data-col');
+                const val = $(this).val();
+                
+                if (isAdmin || (assignedInstructor && assignedInstructor.col === colName)) {
+                    updatePayload[colName] = val === '' ? null : parseFloat(val);
+                }
+            });
+
+            if (Object.keys(updatePayload).length === 0) {
+                alert("You do not have permissions to update any score columns in this row.");
+                return;
+            }
+
+            const { error } = await dbClient
+                .from('summerschool_submissions26')
+                .update(updatePayload)
+                .eq('id', rowId);
+
+            if (error) {
+                alert("Error updating score: " + error.message);
+            } else {
+                alert("✅ Score saved successfully in your authorized column!");
+            }
+        });
+    </script>
+</body>
+</html>
