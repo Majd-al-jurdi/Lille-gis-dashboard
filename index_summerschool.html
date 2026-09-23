@@ -161,7 +161,7 @@
 
     <!-- Sidebar Control Panel -->
     <div id="side_panel" class="col-md-3">
-        <br><h4 class="text-left" style="margin-top: 10px; font-weight: bold;">Project Objectives</h4>
+        <br><h4 class="text-left" style="margin-top: 10px; font-weight: bold;">Project Overview</h4>
         <p style="font-size: 12px; color: #0f0f0f; text-align: justify; margin-right: 10px;">
         The workshop will focus on the analysis and diagnosis of selected sites in the city of Lille. These areas currently experience conflicts related to the transportation system and the use of public space. The proposals should aim to mitigate existing conflicts and generate successful, inclusive urban spaces. 
         <br><br>
@@ -271,14 +271,14 @@
             <hr style="margin: 15px 0;">
             <p style="font-size: 13px; font-weight: bold; color: #0f4c81;">📁 Select Files by Document Type:</p>
 
-            <!-- File Row 1: Project Report -->
+            <!-- File Row 1: Final Submission -->
             <div class="panel panel-default" style="padding: 12px; background-color: #f8fafc; border-color: #cbd5e1;">
                 <div class="form-group" style="margin-bottom: 8px;">
-                    <label style="font-size: 12px; color: #1e293b;">📄 Project Report File:</label>
-                    <input type="file" id="file-report" class="form-control input-sm" accept="application/pdf,image/png,image/jpeg">
+                    <label style="font-size: 12px; color: #1e293b;">📄 Final Submission File:</label>
+                    <input type="file" id="file-finalposter" class="form-control input-sm" accept="application/pdf,image/png,image/jpeg">
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
-                    <input type="text" id="title-report" class="form-control input-sm" placeholder="Report Title / Description (Optional)">
+                    <input type="text" id="title-finalposter" class="form-control input-sm" placeholder="Report Title / Description (Optional)">
                 </div>
             </div>
 
@@ -358,16 +358,16 @@
         const MASTER_ADMIN_EMAIL = "majd.h.jurdi@gmail.com"; 
 
         const PREDEFINED_INSTRUCTORS = {
-            "majd.al-jurdi@junia.com": { col: "score_1", label: "Majd AL JURDI" },
+            "ana.ruiz-bowen@junia.com": { col: "score_1", label: "Ana RUIZ BOWEN" },
             "vedrana.ikalovic@junia.com": { col: "score_2", label: "Vedrana IKALOVIC" },
-            "instructor3@lille.fr": { col: "score_3", label: "instructor3@lille.fr" },
-            "instructor4@lille.fr": { col: "score_4", label: "instructor4@lille.fr" },
-            "instructor5@lille.fr": { col: "score_5", label: "instructor5@lille.fr" },
-            "instructor6@lille.fr": { col: "score_6", label: "instructor6@lille.fr" },
-            "instructor7@lille.fr": { col: "score_7", label: "instructor7@lille.fr" },
-            "instructor8@lille.fr": { col: "score_8", label: "instructor8@lille.fr" },
-            "instructor9@lille.fr": { col: "score_9", label: "instructor9@lille.fr" },
-            "instructor10@lille.fr": { col: "score_10", label: "instructor10@lille.fr" }
+            "hebatallah.khalil@gmail.com": { col: "score_3", label: "Hebatallah KHALIL" },
+            "sheringammaz79@hotmail.com": { col: "score_4", label: "Sherin Gammaz" },
+            "h.kos@hr.nl": { col: "score_5", label: "Harriet KOS" },
+            "r.jansen@hr.nl": { col: "score_6", label: "Remy JANSEN" },
+            "a.mendez.lorenzo@hr.nl": { col: "score_7", label: "Anabel MENDEZ LORENZO" },
+            "romanika.okraszewska@pg.edu.pl": { col: "score_8", label: "Romanika OKRASZEWSKA" },
+            "dominika.wroblewska@pg.edu.pl": { col: "score_9", label: "Dominika WROBLEWSKA" },
+            "s.shavit@hr.nl": { col: "score_10", label: "Shy SHAVIT" },
         };
 
         let currentUser = null;
@@ -619,8 +619,8 @@
             const groupName = document.getElementById('student-group-name').value.trim();
             const stationName = document.getElementById('metro-station-select').value;
             
-            const fileReportInput = document.getElementById('file-report');
-            const titleReportInput = document.getElementById('title-report').value.trim();
+            const fileReportInput = document.getElementById('file-finalposter');
+            const titleReportInput = document.getElementById('title-finalposter').value.trim();
             const filePosterInput = document.getElementById('file-poster');
             const titlePosterInput = document.getElementById('title-poster').value.trim();
 
@@ -650,8 +650,8 @@
                 if (fileReportInput.files.length > 0) {
                     uploadsToProcess.push({
                         file: fileReportInput.files[0],
-                        type: 'Project Report',
-                        title: titleReportInput || 'Project Report'
+                        type: 'Final Submission',
+                        title: titleReportInput || 'Final Submission'
                     });
                 }
 
@@ -703,7 +703,7 @@
                     document.getElementById('metro-station-select').value = '';
                     fileReportInput.value = '';
                     filePosterInput.value = '';
-                    document.getElementById('title-report').value = '';
+                    document.getElementById('title-finalposter').value = '';
                     document.getElementById('title-poster').value = '';
                     statusDiv.innerText = '';
                     document.getElementById('btnConfirmUpload').disabled = false;
@@ -721,7 +721,7 @@
         let isInstructorMode = false;
         document.getElementById('toggleInstructorSwitch').addEventListener('change', async function() {
             if (!currentUser) {
-                alert("🔒 Access denied: Instructor mode is restricted to logged-in users.");
+                alert("🔒 Access denied: Instructor mode is restricted to logged-in instructors.");
                 this.checked = false;
                 return;
             }
@@ -793,7 +793,7 @@
 
             data.forEach(doc => {
                 const tr = document.createElement('tr');
-                const catType = doc.deliverable_type || 'Project Report';
+                const catType = doc.deliverable_type || 'Final Submission';
 
                 let scoreCellsHtml = '';
                 for (let i = 1; i <= 10; i++) {
