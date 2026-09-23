@@ -41,6 +41,33 @@
             padding: 0 20px; 
         }
 
+        /* Custom Junia Brand Buttons */
+        .btn-junia-orange {
+            background-color: #ff4b2b !important;
+            border-color: #e03e1f !important;
+            color: white !important;
+            font-weight: bold;
+            transition: background-color 0.2s ease;
+        }
+        .btn-junia-orange:hover, .btn-junia-orange:focus {
+            background-color: #e03e1f !important;
+            border-color: #c73518 !important;
+            color: white !important;
+        }
+
+        .btn-junia-purple {
+            background-color: #343355 !important;
+            border-color: #24233c !important;
+            color: white !important;
+            font-weight: bold;
+            transition: background-color 0.2s ease;
+        }
+        .btn-junia-purple:hover, .btn-junia-purple:focus {
+            background-color: #24233c !important;
+            border-color: #171628 !important;
+            color: white !important;
+        }
+
         /* Table of Contents Control Panel */
         .toc-panel {
             position: absolute; top: 10px; right: 50px; z-index: 1000;
@@ -83,23 +110,29 @@
             position: absolute; content: ""; height: 18px; width: 18px; left: 2px; bottom: 2px;
             background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
-        .instructor-switch input:checked + .instructor-slider { background-color: #0284c7; }
+        .instructor-switch input:checked + .instructor-slider { background-color: #ff4b2b; }
         .instructor-switch input:checked + .instructor-slider:before { transform: translateX(22px); }
 
         /* Sidebar Section Styling */
         .sidebar-section-student {
-            background-color: rgba(230, 242, 255, 0.85);
-            border: 1px solid #b6d4fe;
+            background-color: #fdb1a3;
+            border: 1px solid #ff4b2b;
             border-radius: 6px;
             padding: 12px;
             margin-bottom: 15px;
         }
         .sidebar-section-instructor {
-            background-color: rgba(255, 243, 205, 0.85);
-            border: 1px solid #ffeeba;
+            background-color: #343355;
+            border: 1px solid #191830;
             border-radius: 6px;
             padding: 12px;
             margin-bottom: 15px;
+        }
+        .sidebar-section-contact {
+            background-color: rgba(241, 245, 249, 0.9);
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px;
         }
 
         /* Permanent Station Label Styling */
@@ -149,8 +182,8 @@
             <div id="logged-out-ui" style="display: flex; gap: 5px; align-items: center;">
                 <input type="email" id="auth-email" placeholder="Email (user@mail.fr)" class="form-control input-sm" style="width: 180px; color: black;">
                 <input type="password" id="auth-password" placeholder="Password (6 chars min)" class="form-control input-sm" style="width: 180px; color: black;">
-                <button id="btn-login" class="btn btn-sm btn-success" style="font-weight: bold;">Login</button>
-                <button id="btn-signup" class="btn btn-sm btn-info" style="font-weight: bold;">Sign Up</button>
+                <button id="btn-login" class="btn btn-sm btn-junia-orange" style="font-weight: bold;">Login</button>
+                <button id="btn-signup" class="btn btn-sm btn-junia-purple" style="font-weight: bold;">Sign Up</button>
             </div>
             <div id="logged-in-ui" style="display: none; align-items: center; gap: 15px;">
                 <span id="user-greeting" style="font-weight: bold; font-size: 13px; color: white;"></span>
@@ -178,16 +211,16 @@
 
         <!-- SECTION 1: STUDENTS -->
         <div class="sidebar-section-student">
-            <h4 class="text-left" style="margin-top: 0; color: #084298; font-weight: bold;">🎓 Working Group (1 student per group)</h4>
-            <p style="font-size: 11px; color: #555;">Submit your project deliverables and associate them with a metro station.</p>
-            <button id="btnOpenUploadModal" class="form-control btn btn-primary" data-toggle="modal" data-target="#uploadModal" style="margin-bottom: 10px; font-weight: bold;">📄 Add Project Deliverables</button>
+            <h4 class="text-left" style="margin-top: 0; color: #0f0f0f; font-weight: bold;">🎓 Working Group (1 student per group)</h4>
+            <p style="font-size: 11px; font-weight: bold; color: #0f0f0f;">Submit your project deliverables and associate them with a metro station. (1 student is to submit per group)</p>
+            <button id="btnOpenUploadModal" class="form-control btn btn-junia-orange" data-toggle="modal" data-target="#uploadModal" style="margin-bottom: 10px; font-weight: bold;">📄 Add Project Deliverables</button>
         </div>
 
         <!-- SECTION 2: INSTRUCTORS -->
         <div class="sidebar-section-instructor">
-            <h4 class="text-left" style="margin-top: 0; color: #664d03; font-weight: bold;">👨‍🏫 Instructor Section</h4>
+            <h4 class="text-left" style="margin-top: 0; color: #ffffff; font-weight: bold;">👨‍🏫 Instructor Section</h4>
             <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
-                <span style="font-size: 11px; font-weight: bold; color: #413300;">Review student submissions and current progress</span>
+                <span style="font-size: 11px; font-weight: bold; color: #ffffff;">Review student submissions and current progress</span>
                 <label class="instructor-switch">
                     <input type="checkbox" id="toggleInstructorSwitch">
                     <span class="instructor-slider"></span>
@@ -202,7 +235,8 @@
                 Vedrana IKALOVIC, Academic Coordinator vedrana.ikalovic@junia.com<br>
                 Véronique BONTE, Administrative Coordinator veronique.bonte@junia.com<br>
                 Vira WANNEPAIN, International coordinator vira.wannepain@junia.com
-            </p></div>
+            </p>
+        </div>
     </div>
 
     <!-- Map Viewport -->
@@ -240,7 +274,7 @@
         </div>
         <div class="footer-content">
             <h4 id="map_coords">Latitude: 50.6333 Longitude: 3.06667 Zoom Level: 14</h4>
-            <a href="https://www.junia.com/en/academics/master-of-science-in-smart-and-resilient-cities/" target="_blank">Smart & Resilient Cities Research Team 2026[cite: 15]</a>
+            <a href="https://www.junia.com/en/academics/master-of-science-in-smart-and-resilient-cities/" target="_blank">Smart & Resilient Cities Research Team 2026</a>
         </div>
         <div style="width: 50px;"></div>
     </div>
@@ -249,12 +283,12 @@
     <div class="modal fade" id="uploadModal" tabindex="-1" role="dialog" aria-labelledby="uploadModalLabel">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
-          <div class="modal-header" style="background-color: #0f4c81; color: white;">
+          <div class="modal-header btn-junia-purple" style="color: white;">
             <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:white;"><span aria-hidden="true">&times;</span></button>
             <h4 class="modal-title" id="uploadModalLabel">Upload Project Deliverables (Student Group)</h4>
           </div>
           <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-            <p class="text-muted" style="font-size: 12px;">Restricted to logged-in student members. Attach your files by category and link them to a metro station.</p>
+            <p class="text-muted" style="font-size: 12px;">Restricted to logged-in student members. Attach your files below and link them to a metro station.</p>
             
             <div class="form-group">
                 <label for="student-group-name">Student Group Name / Project ID:</label>
@@ -269,7 +303,7 @@
             </div>
 
             <hr style="margin: 15px 0;">
-            <p style="font-size: 13px; font-weight: bold; color: #0f4c81;">📁 Select Files by Document Type:</p>
+            <p style="font-size: 13px; font-weight: bold; color: #343355;">📁 Select Files by Document Type:</p>
 
             <!-- File Row 1: Final Submission -->
             <div class="panel panel-default" style="padding: 12px; background-color: #f8fafc; border-color: #cbd5e1;">
@@ -297,7 +331,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-            <button type="button" id="btnConfirmUpload" class="btn btn-primary">📤 Upload Deliverables</button>
+            <button type="button" id="btnConfirmUpload" class="btn btn-junia-orange">📤 Upload Deliverables</button>
           </div>
         </div>
       </div>
@@ -307,7 +341,7 @@
     <div class="modal fade" id="instructorGradingModal" tabindex="-1" role="dialog" aria-labelledby="instructorGradingModalLabel">
       <div class="modal-dialog modal-lg" role="document" style="width: 90%;">
         <div class="modal-content">
-          <div class="modal-header" style="background-color: #664d03; color: white;">
+          <div class="modal-header btn-junia-purple" style="color: white;">
             <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:white;"><span aria-hidden="true">&times;</span></button>
             <h4 class="modal-title" id="instructorGradingModalLabel">👨‍🏫 Predefined Multi-Instructor Evaluation Panel</h4>
           </div>
@@ -333,7 +367,7 @@
     <div class="modal fade" id="pdfViewerModal" tabindex="-1" role="dialog" aria-labelledby="pdfViewerModalLabel">
       <div class="modal-dialog modal-lg" role="document" style="width: 85%; height: 90vh;">
         <div class="modal-content" style="height: 100%;">
-          <div class="modal-header" style="background-color: #0f4c81; color: white;">
+          <div class="modal-header btn-junia-purple" style="color: white;">
             <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:white;"><span aria-hidden="true">&times;</span></button>
             <h4 class="modal-title" id="pdfViewerModalLabel">Document Viewer</h4>
           </div>
@@ -368,6 +402,7 @@
             "romanika.okraszewska@pg.edu.pl": { col: "score_8", label: "Romanika OKRASZEWSKA" },
             "dominika.wroblewska@pg.edu.pl": { col: "score_9", label: "Dominika WROBLEWSKA" },
             "s.shavit@hr.nl": { col: "score_10", label: "Shy SHAVIT" },
+            "frank.schwartze@th-luebeck.de": { col: "score_11", label: "Frank SCHWARTZE" },
         };
 
         let currentUser = null;
@@ -377,7 +412,7 @@
             if (user) {
                 document.getElementById('logged-out-ui').style.display = 'none';
                 document.getElementById('logged-in-ui').style.display = 'flex';
-                document.getElementById('user-greeting').innerText = "👤 Hello, " + user.email;
+                document.getElementById('user-greeting').innerText = "👤 Welcome, " + user.email;
             } else {
                 document.getElementById('logged-out-ui').style.display = 'flex';
                 document.getElementById('logged-in-ui').style.display = 'none';
@@ -484,15 +519,15 @@
                 if (subMatches.length > 0) {
                     subMatches.forEach(sub => {
                         var catLabel = sub.deliverable_type ? `[${sub.deliverable_type}]` : '[Report]';
-                        var projectBtn = $("<button class='btn btn-info btn-xs btn-block open-station-report' data-url='" + sub.pdf_url + "' data-title='" + sub.title + " (" + sub.student_group + ")' style='margin-top: 6px; font-weight: bold;'>📁 " + catLabel + " " + sub.title + "</button>");
+                        var projectBtn = $("<button class='btn btn-junia-purple btn-xs btn-block open-station-report' data-url='" + sub.pdf_url + "' data-title='" + sub.title + " (" + sub.student_group + ")' style='margin-top: 6px; font-weight: bold;'>📁 " + catLabel + " " + sub.title + "</button>");
                         popupContainer.append(projectBtn);
                     });
                 } else {
-                    var noRecordBtn = $("<button class='btn btn-warning btn-xs btn-block open-station-report' data-url='' data-title='" + stationName + "' style='margin-top: 8px;'>📁 View Project Deliverable (None)</button>");
+                    var noRecordBtn = $("<button class='btn btn-junia-purple btn-xs btn-block open-station-report' data-url='' data-title='" + stationName + "' style='margin-top: 8px;'>📁 View Project Deliverable (None)</button>");
                     popupContainer.append(noRecordBtn);
                 }
 
-                var popupBtn = $("<button class='btn btn-success btn-xs btn-block' style='margin-top: 6px;'>🔍 Zoom to this station</button>");
+                var popupBtn = $("<button class='btn btn-junia-orange btn-xs btn-block' style='margin-top: 6px;'>🔍 Zoom to this station</button>");
                 popupBtn.on('click', function () { mymap.setView(layer.getLatLng(), 17); });
                 popupContainer.append(popupBtn);
 
@@ -713,7 +748,7 @@
             } catch (err) {
                 console.error("Upload error:", err);
                 statusDiv.style.color = "red";
-                statusDiv.innerText = "❌ Failure: " + err.message;
+                statusDiv.innerText = "❌ Failure: " + (err.message || JSON.stringify(err));
                 document.getElementById('btnConfirmUpload').disabled = false;
             }
         });
@@ -760,7 +795,7 @@
                 <th>Submitted By</th>
                 <th>File / Link</th>
             `;
-            for (let i = 1; i <= 10; i++) {
+            for (let i = 1; i <= 11; i++) {
                 let labelText = "Inst " + i;
                 for (let emailKey in PREDEFINED_INSTRUCTORS) {
                     if (PREDEFINED_INSTRUCTORS[emailKey].col === "score_" + i) {
@@ -770,18 +805,18 @@
                 }
                 headerHtml += `<th>${labelText}</th>`;
             }
-            headerHtml += `<th>Action</th>`;
+            headerHtml += `<th>🖱 Click to Save Grade</th>`;
             headRow.innerHTML = headerHtml;
 
-            tableBody.innerHTML = '<tr><td colspan="17" class="text-center">Loading submissions... ⏳</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="18" class="text-center">Loading submissions... ⏳</td></tr>';
 
             const { data, error } = await dbClient
                 .from('summerschool_submissions26')
-                .select('id, student_group, deliverable_type, metro_station, title, user_email, pdf_url, created_at, score_1, score_2, score_3, score_4, score_5, score_6, score_7, score_8, score_9, score_10')
+                .select('id, student_group, deliverable_type, metro_station, title, user_email, pdf_url, created_at, score_1, score_2, score_3, score_4, score_5, score_6, score_7, score_8, score_9, score_10, score_11')
                 .order('created_at', { ascending: false });
 
             if (error || !data || data.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="17" class="text-center text-muted">No submissions found.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="18" class="text-center text-muted">No submissions found.</td></tr>';
                 return;
             }
 
@@ -796,7 +831,7 @@
                 const catType = doc.deliverable_type || 'Final Submission';
 
                 let scoreCellsHtml = '';
-                for (let i = 1; i <= 10; i++) {
+                for (let i = 1; i <= 11; i++) {
                     const colName = `score_${i}`;
                     const val = doc[colName] !== null && doc[colName] !== undefined ? doc[colName] : '';
                     const canEditThisCol = isAdmin || (assignedInstructor && assignedInstructor.col === colName);
@@ -817,7 +852,7 @@
                     <td><a href="${doc.pdf_url}" target="_blank" class="btn btn-xs btn-info">View File</a></td>
                     ${scoreCellsHtml}
                     <td>
-                        <button class="btn btn-success btn-xs btn-save-score" data-id="${doc.id}">💾 Save</button>
+                        <button class="btn btn-junia-orange btn-xs btn-save-score" data-id="${doc.id}">💾 Save</button>
                     </td>
                 `;
                 tableBody.appendChild(tr);
