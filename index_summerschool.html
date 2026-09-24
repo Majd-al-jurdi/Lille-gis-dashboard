@@ -130,14 +130,14 @@
 
         /* Sidebar Section Styling */
         .sidebar-section-student {
-            background-color: rgba(230, 242, 255, 0.85);
-            border: 1px solid #b6d4fe;
+            background-color: rgba(255, 237, 230, 0.85);
+            border: 1px solid #ffb3a7;
             border-radius: 6px;
             padding: 12px;
             margin-bottom: 15px;
         }
         .sidebar-section-instructor {
-            background-color: rgba(255, 243, 205, 0.85);
+            background-color: #343355;
             border: 1px solid #ffeeba;
             border-radius: 6px;
             padding: 12px;
@@ -190,7 +190,7 @@
         <div style="display: flex; flex-direction: column; justify-content: center;">
             <h2 style="margin: 0; font-size: 20px; font-weight: bold; color: white; letter-spacing: 0.5px; text-transform: uppercase;">RESILIENCE and INCLUSION</h2>
             <h4 style="margin: 3px 0 0 0; font-size: 15px; font-weight: 600; color: #ff4b2b;">Blended Intensive Programme</h4>
-            <span style="font-size: 11px; color: #cbd5e1; font-weight: 500; margin-top: 2px;">21 to 26 September 2026[cite: 8]</span>
+            <span style="font-size: 11px; color: #cbd5e1; font-weight: 500; margin-top: 2px;">21 to 26 September 2026</span>
         </div>
 
         <div id="auth-container">
@@ -226,16 +226,16 @@
 
         <!-- SECTION 1: STUDENTS -->
         <div class="sidebar-section-student">
-            <h4 class="text-left" style="margin-top: 0; color: #084298; font-weight: bold;">🎓 Working Group (1 student per group)</h4>
+            <h4 class="text-left" style="margin-top: 0; color: #ff4b2b; font-weight: bold;">🎓 Working Group (1 student per group)</h4>
             <p style="font-size: 11px; color: #555;">Submit your project deliverables and associate them with a metro station.</p>
             <button id="btnOpenUploadModal" class="form-control btn btn-junia-orange" data-toggle="modal" data-target="#uploadModal" style="margin-bottom: 10px; font-weight: bold;">📄 Add Project Deliverables</button>
         </div>
 
         <!-- SECTION 2: INSTRUCTORS -->
         <div class="sidebar-section-instructor">
-            <h4 class="text-left" style="margin-top: 0; color: #664d03; font-weight: bold;">👨‍🏫 Instructor Section</h4>
+            <h4 class="text-left" style="margin-top: 0; color: #fffefc; font-weight: bold;">👨‍🏫 Instructor Section</h4>
             <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
-                <span style="font-size: 11px; font-weight: bold; color: #413300;">Review student submissions and current progress</span>
+                <span style="font-size: 11px; font-weight: bold; color: #ffffff;">Review student submissions and current progress</span>
                 <label class="instructor-switch">
                     <input type="checkbox" id="toggleInstructorSwitch">
                     <span class="instructor-slider"></span>
@@ -318,7 +318,7 @@
             </div>
 
             <hr style="margin: 15px 0;">
-            <p style="font-size: 13px; font-weight: bold; color: #343355;">📁 Select Files by Document Type:</p>
+            <p style="font-size: 13px; font-weight: bold; color: #ff4b2b;">📁 Select Files by Document Type:</p>
 
             <!-- File Row 1: Final Submission -->
             <div class="panel panel-default" style="padding: 12px; background-color: #f8fafc; border-color: #cbd5e1;">
@@ -852,7 +852,6 @@
                     const canEditThisCol = isAdmin || (assignedInstructor && assignedInstructor.col === colName);
 
                     if (canEditThisCol) {
-                        // Replaced narrow input with an expanded textarea for readable multi-line feedback
                         scoreCellsHtml += `<td><textarea class="form-control input-sm score-input" data-id="${doc.id}" data-col="${colName}" rows="3" placeholder="Type extensive feedback here..." style="width: 100%; min-width: 200px; background: #fff3cd; font-weight: bold; resize: vertical;" title="Your Assigned Column">${val}</textarea></td>`;
                     } else {
                         scoreCellsHtml += `<td style="color: #64748b; background: #f8fafc; max-width: 200px; word-break: break-word;" title="Restricted">${val !== '' ? val : '-'}</td>`;
