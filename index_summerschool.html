@@ -41,7 +41,7 @@
             padding: 0 20px; 
         }
 
-        /* Custom Junia Brand Buttons */
+        /* Custom Junia Brand Buttons (Purple and Coral) */
         .btn-junia-orange {
             background-color: #ff4b2b !important;
             border-color: #e03e1f !important;
@@ -73,8 +73,9 @@
             position: absolute; top: 10px; right: 50px; z-index: 1000;
             background: white; padding: 10px; border-radius: 4px;
             box-shadow: 0 1px 5px rgba(0,0,0,0.4); max-width: 250px; font-family: Arial, sans-serif;
+            border-top: 3px solid #ff4b2b;
         }
-        .toc-header { font-weight: bold; cursor: pointer; padding-bottom: 5px; border-bottom: 1px solid #ccc; user-select: none; }
+        .toc-header { font-weight: bold; cursor: pointer; padding-bottom: 5px; border-bottom: 1px solid #ccc; user-select: none; color: #343355; }
         .toc-content { margin-top: 8px; }
 
         /* Map Legend Panel */
@@ -82,7 +83,9 @@
             position: absolute; bottom: 30px; right: 10px; z-index: 999;
             background: rgba(255, 255, 255, 0.9); padding: 10px; border-radius: 5px;
             box-shadow: 0 0 15px rgba(0,0,0,0.2); font-family: Arial, sans-serif; font-size: 12px; line-height: 18px;
+            border-bottom: 3px solid #343355;
         }
+        .map-legend h4 { color: #343355; margin-top: 0; }
         .legend-color-box { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.8; border: 1px solid #555; }
         .legend-line { width: 18px; height: 4px; float: left; margin: 7px 8px 0 0; }
 
@@ -91,6 +94,18 @@
             position: absolute; top: 90px; left: 10px; z-index: 1000;
             background: white; padding: 5px; border-radius: 4px;
             box-shadow: 0 1px 5px rgba(0,0,0,0.4); width: 34px; height: 34px; text-align: center;
+            border: 2px solid #ff4b2b;
+        }
+
+        /* Leaflet Zoom Control Recolor to Coral */
+        .leaflet-control-zoom a {
+            background-color: #343355 !important;
+            color: white !important;
+            border-bottom: 1px solid #ff4b2b !important;
+        }
+        .leaflet-control-zoom a:hover {
+            background-color: #ff4b2b !important;
+            color: white !important;
         }
 
         /* Instructor Mode Toggle Switch */
@@ -115,15 +130,15 @@
 
         /* Sidebar Section Styling */
         .sidebar-section-student {
-            background-color: #fdb1a3;
-            border: 1px solid #ff4b2b;
+            background-color: rgba(230, 242, 255, 0.85);
+            border: 1px solid #b6d4fe;
             border-radius: 6px;
             padding: 12px;
             margin-bottom: 15px;
         }
         .sidebar-section-instructor {
-            background-color: #343355;
-            border: 1px solid #191830;
+            background-color: rgba(255, 243, 205, 0.85);
+            border: 1px solid #ffeeba;
             border-radius: 6px;
             padding: 12px;
             margin-bottom: 15px;
@@ -138,12 +153,12 @@
         /* Permanent Station Label Styling */
         .station-label {
             background: rgba(255, 255, 255, 0.9);
-            border: 1px solid #0f4c81;
+            border: 1px solid #ff4b2b;
             border-radius: 3px;
             padding: 2px 5px;
             font-size: 10px;
             font-weight: bold;
-            color: #0f4c81;
+            color: #343355;
             white-space: nowrap;
             box-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
@@ -163,7 +178,7 @@
         }
         .footer-content a {
             font-size: 11px;
-            color: #60a5fa;
+            color: #ff4b2b;
             text-decoration: underline;
         }
     </style>
@@ -174,8 +189,8 @@
     <div id="header" class="col-md-12" style="position: relative; min-height: 80px; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; flex-direction: column; justify-content: center;">
             <h2 style="margin: 0; font-size: 20px; font-weight: bold; color: white; letter-spacing: 0.5px; text-transform: uppercase;">RESILIENCE and INCLUSION</h2>
-            <h4 style="margin: 3px 0 0 0; font-size: 15px; font-weight: 600; color: #e2e8f0;">Blended Intensive Programme</h4>
-            <span style="font-size: 11px; color: #cbd5e1; font-weight: 500; margin-top: 2px;">21 to 26 September 2026</span>
+            <h4 style="margin: 3px 0 0 0; font-size: 15px; font-weight: 600; color: #ff4b2b;">Blended Intensive Programme</h4>
+            <span style="font-size: 11px; color: #cbd5e1; font-weight: 500; margin-top: 2px;">21 to 26 September 2026[cite: 8]</span>
         </div>
 
         <div id="auth-container">
@@ -194,14 +209,14 @@
 
     <!-- Sidebar Control Panel -->
     <div id="side_panel" class="col-md-3">
-        <br><h4 class="text-left" style="margin-top: 10px; font-weight: bold;">Project Overview</h4>
+        <br><h4 class="text-left" style="margin-top: 10px; font-weight: bold; color: #343355;">Project Overview</h4>
         <p style="font-size: 12px; color: #0f0f0f; text-align: justify; margin-right: 10px;">
         The workshop will focus on the analysis and diagnosis of selected sites in the city of Lille. These areas currently experience conflicts related to the transportation system and the use of public space. The proposals should aim to mitigate existing conflicts and generate successful, inclusive urban spaces. 
         <br><br>
         Climate adaptation will constitute a major component of the workshop. Projects must align with Lille’s ecological transition strategy and address the city’s principal environmental challenges, such as urban heat islands and heavy rainfall. Historical and heritage dimensions, as well as future mobility plans, must also be carefully considered. Lille’s population is socially and economically diverse and includes residents, students, and tourists. The proposed projects must respond to the needs of these different user groups and contribute to the development of a hospitable and inclusive city
         </p>
         <p style="font-size: 12px; color: #0f0f0f; text-align: justify; margin-right: 10px;">
-            <b style="font-size: 13px;">Partner Institutions: </b><br style="margin-bottom: 6px;">
+            <b style="font-size: 13px; color: #343355;">Partner Institutions: </b><br style="margin-bottom: 6px;">
             • Rotterdam University of Applied Sciences (4 professors + 23 students) <Br>
             • Technische Hochschule Lübeck | University of Applied Sciences (1 professors + 8 students)<Br>
             • Faculty of Engineering / Cairo University (2 professors + 11 students)<Br>
@@ -211,16 +226,16 @@
 
         <!-- SECTION 1: STUDENTS -->
         <div class="sidebar-section-student">
-            <h4 class="text-left" style="margin-top: 0; color: #0f0f0f; font-weight: bold;">🎓 Working Group (1 student per group)</h4>
-            <p style="font-size: 11px; font-weight: bold; color: #0f0f0f;">Submit your project deliverables and associate them with a metro station. (1 student is to submit per group)</p>
+            <h4 class="text-left" style="margin-top: 0; color: #084298; font-weight: bold;">🎓 Working Group (1 student per group)</h4>
+            <p style="font-size: 11px; color: #555;">Submit your project deliverables and associate them with a metro station.</p>
             <button id="btnOpenUploadModal" class="form-control btn btn-junia-orange" data-toggle="modal" data-target="#uploadModal" style="margin-bottom: 10px; font-weight: bold;">📄 Add Project Deliverables</button>
         </div>
 
         <!-- SECTION 2: INSTRUCTORS -->
         <div class="sidebar-section-instructor">
-            <h4 class="text-left" style="margin-top: 0; color: #ffffff; font-weight: bold;">👨‍🏫 Instructor Section</h4>
+            <h4 class="text-left" style="margin-top: 0; color: #664d03; font-weight: bold;">👨‍🏫 Instructor Section</h4>
             <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
-                <span style="font-size: 11px; font-weight: bold; color: #ffffff;">Review student submissions and current progress</span>
+                <span style="font-size: 11px; font-weight: bold; color: #413300;">Review student submissions and current progress</span>
                 <label class="instructor-switch">
                     <input type="checkbox" id="toggleInstructorSwitch">
                     <span class="instructor-slider"></span>
@@ -229,7 +244,7 @@
         </div><br>
 
         <div class="sidebar-section-contact">
-            <h6 class="text-left" style="margin-top: 0; color: #2c3e50; font-weight: bold;">Contact Information</h6>
+            <h6 class="text-left" style="margin-top: 0; color: #343355; font-weight: bold;">Contact Information</h6>
             <p style="font-size: 11px; color: #555;">
                 Ana RUIZ BOWEN, Academic Coordinator ana.ruiz-bowen@junia.com <br>
                 Vedrana IKALOVIC, Academic Coordinator vedrana.ikalovic@junia.com<br>
@@ -262,8 +277,8 @@
 
         <!-- North Arrow Widget -->
         <div class="north-arrow-control">
-            <span style="font-weight:bold; font-size:16px; color:#c0392b; display:block; margin-top:-2px;">▲</span>
-            <span style="font-size:10px; font-weight:bold; display:block; margin-top:-4px;">N</span>
+            <span style="font-weight:bold; font-size:16px; color:#ff4b2b; display:block; margin-top:-2px;">▲</span>
+            <span style="font-size:10px; font-weight:bold; display:block; margin-top:-4px; color:#343355;">N</span>
         </div>
     </div>
 
@@ -339,14 +354,14 @@
 
     <!-- Instructor Grading & Submissions Pop-up Modal -->
     <div class="modal fade" id="instructorGradingModal" tabindex="-1" role="dialog" aria-labelledby="instructorGradingModalLabel">
-      <div class="modal-dialog modal-lg" role="document" style="width: 90%;">
+      <div class="modal-dialog modal-lg" role="document" style="width: 95%;">
         <div class="modal-content">
           <div class="modal-header btn-junia-purple" style="color: white;">
             <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:white;"><span aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title" id="instructorGradingModalLabel">👨‍🏫 Predefined Multi-Instructor Evaluation Panel</h4>
+            <h4 class="modal-title" id="instructorGradingModalLabel">👨‍🏫 Predefined Multi-Instructor Evaluation Panel (Expanded Feedback Area)</h4>
           </div>
           <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-            <p class="text-muted" style="font-size: 12px;">You can view all student submissions and categories. You are only permitted to edit your own designated email column.</p>
+            <p class="text-muted" style="font-size: 12px;">You can view all student submissions and enter extensive textual feedback in your designated wider column.</p>
             <div class="table-responsive">
                 <table class="table table-bordered table-striped" id="instructor-grading-table" style="font-size: 11px;">
                     <thead>
@@ -382,7 +397,7 @@
     </div>
 
     <!-- =====================================================================
-         JAVASCRIPT LOGIC - ORGANIZED & STRUCTURED
+         JAVASCRIPT LOGIC - EXPANDED TEXTAREAS FOR FEEDBACK
          ===================================================================== -->
     <script>
         const supabaseUrl = 'https://qfnxsstlarpewpxdpufg.supabase.co';
@@ -412,7 +427,7 @@
             if (user) {
                 document.getElementById('logged-out-ui').style.display = 'none';
                 document.getElementById('logged-in-ui').style.display = 'flex';
-                document.getElementById('user-greeting').innerText = "👤 Welcome, " + user.email;
+                document.getElementById('user-greeting').innerText = "👤 Hello, " + user.email;
             } else {
                 document.getElementById('logged-out-ui').style.display = 'flex';
                 document.getElementById('logged-in-ui').style.display = 'none';
@@ -519,15 +534,15 @@
                 if (subMatches.length > 0) {
                     subMatches.forEach(sub => {
                         var catLabel = sub.deliverable_type ? `[${sub.deliverable_type}]` : '[Report]';
-                        var projectBtn = $("<button class='btn btn-junia-purple btn-xs btn-block open-station-report' data-url='" + sub.pdf_url + "' data-title='" + sub.title + " (" + sub.student_group + ")' style='margin-top: 6px; font-weight: bold;'>📁 " + catLabel + " " + sub.title + "</button>");
+                        var projectBtn = $("<button class='btn btn-junia-orange btn-xs btn-block open-station-report' data-url='" + sub.pdf_url + "' data-title='" + sub.title + " (" + sub.student_group + ")' style='margin-top: 6px; font-weight: bold;'>📁 " + catLabel + " " + sub.title + "</button>");
                         popupContainer.append(projectBtn);
                     });
                 } else {
-                    var noRecordBtn = $("<button class='btn btn-junia-purple btn-xs btn-block open-station-report' data-url='' data-title='" + stationName + "' style='margin-top: 8px;'>📁 View Project Deliverable (None)</button>");
+                    var noRecordBtn = $("<button class='btn btn-warning btn-xs btn-block open-station-report' data-url='' data-title='" + stationName + "' style='margin-top: 8px;'>📁 View Project Deliverable (None)</button>");
                     popupContainer.append(noRecordBtn);
                 }
 
-                var popupBtn = $("<button class='btn btn-junia-orange btn-xs btn-block' style='margin-top: 6px;'>🔍 Zoom to this station</button>");
+                var popupBtn = $("<button class='btn btn-junia-purple btn-xs btn-block' style='margin-top: 6px;'>🔍 Zoom to this station</button>");
                 popupBtn.on('click', function () { mymap.setView(layer.getLatLng(), 17); });
                 popupContainer.append(popupBtn);
 
@@ -543,7 +558,7 @@
                 if (railwayName.includes('ligne 1') || railwayName.includes('line 1')) {
                     lineColor = '#f1c40f';
                 } else if (railwayName.includes('ligne 2') || railwayName.includes('line 2')) {
-                    lineColor = '#e74c3c';
+                    lineColor = '#ff4b2b';
                 }
 
                 return { color: lineColor, weight: 3.5, opacity: 0.9 };
@@ -788,12 +803,12 @@
             const tableBody = document.getElementById('instructor-table-body');
             
             let headerHtml = `
-                <th>Group Name</th>
-                <th>Category</th>
-                <th>Station</th>
-                <th>Title</th>
-                <th>Submitted By</th>
-                <th>File / Link</th>
+                <th style="min-width: 90px;">Group Name</th>
+                <th style="min-width: 110px;">Category</th>
+                <th style="min-width: 120px;">Station</th>
+                <th style="min-width: 80px;">Title</th>
+                <th style="min-width: 140px;">Submitted By</th>
+                <th style="min-width: 90px;">File / Link</th>
             `;
             for (let i = 1; i <= 11; i++) {
                 let labelText = "Inst " + i;
@@ -803,9 +818,9 @@
                         break;
                     }
                 }
-                headerHtml += `<th>${labelText}</th>`;
+                headerHtml += `<th style="min-width: 220px;">${labelText}</th>`;
             }
-            headerHtml += `<th>🖱 Click to Save Grade</th>`;
+            headerHtml += `<th style="min-width: 100px;">🖱 Action</th>`;
             headRow.innerHTML = headerHtml;
 
             tableBody.innerHTML = '<tr><td colspan="18" class="text-center">Loading submissions... ⏳</td></tr>';
@@ -837,9 +852,10 @@
                     const canEditThisCol = isAdmin || (assignedInstructor && assignedInstructor.col === colName);
 
                     if (canEditThisCol) {
-                        scoreCellsHtml += `<td><input type="number" class="form-control input-sm score-input" data-id="${doc.id}" data-col="${colName}" value="${val}" min="0" max="20" style="width: 55px; background: #fff3cd; font-weight: bold;" title="Your Assigned Column"></td>`;
+                        // Replaced narrow input with an expanded textarea for readable multi-line feedback
+                        scoreCellsHtml += `<td><textarea class="form-control input-sm score-input" data-id="${doc.id}" data-col="${colName}" rows="3" placeholder="Type extensive feedback here..." style="width: 100%; min-width: 200px; background: #fff3cd; font-weight: bold; resize: vertical;" title="Your Assigned Column">${val}</textarea></td>`;
                     } else {
-                        scoreCellsHtml += `<td style="color: #64748b; background: #f8fafc;" title="Restricted">${val !== '' ? val : '-'}</td>`;
+                        scoreCellsHtml += `<td style="color: #64748b; background: #f8fafc; max-width: 200px; word-break: break-word;" title="Restricted">${val !== '' ? val : '-'}</td>`;
                     }
                 }
 
@@ -849,7 +865,7 @@
                     <td>${doc.metro_station || 'N/A'}</td>
                     <td>${doc.title}</td>
                     <td>${doc.user_email || 'N/A'}</td>
-                    <td><a href="${doc.pdf_url}" target="_blank" class="btn btn-xs btn-info">View File</a></td>
+                    <td><a href="${doc.pdf_url}" target="_blank" class="btn btn-xs btn-junia-purple">View File</a></td>
                     ${scoreCellsHtml}
                     <td>
                         <button class="btn btn-junia-orange btn-xs btn-save-score" data-id="${doc.id}">💾 Save</button>
@@ -874,12 +890,12 @@
                 const val = $(this).val();
                 
                 if (isAdmin || (assignedInstructor && assignedInstructor.col === colName)) {
-                    updatePayload[colName] = val === '' ? null : parseFloat(val);
+                    updatePayload[colName] = val === '' ? null : val;
                 }
             });
 
             if (Object.keys(updatePayload).length === 0) {
-                alert("You do not have permissions to update any score columns in this row.");
+                alert("You do not have permissions to update any feedback columns in this row.");
                 return;
             }
 
@@ -889,9 +905,9 @@
                 .eq('id', rowId);
 
             if (error) {
-                alert("Error updating score: " + error.message);
+                alert("Error updating feedback: " + error.message);
             } else {
-                alert("✅ Score saved successfully in your authorized column!");
+                alert("✅ Feedback saved successfully in your authorized column!");
             }
         });
     </script>
