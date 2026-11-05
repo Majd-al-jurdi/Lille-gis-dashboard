@@ -1,4 +1,6 @@
-<!doctype html>
+
+    
+
 <html lang="en">
 
 <head>
@@ -418,6 +420,7 @@
             "dominika.wroblewska@pg.edu.pl": { col: "score_9", label: "Dominika WROBLEWSKA" },
             "s.shavit@hr.nl": { col: "score_10", label: "Shy SHAVIT" },
             "frank.schwartze@th-luebeck.de": { col: "score_11", label: "Frank SCHWARTZE" },
+            "majd.al-jurdi@junia.com": { col: "score_12", label: "Majd AL JURDI" },
         };
 
         let currentUser = null;
@@ -827,7 +830,7 @@
 
             const { data, error } = await dbClient
                 .from('summerschool_submissions26')
-                .select('id, student_group, deliverable_type, metro_station, title, user_email, pdf_url, created_at, score_1, score_2, score_3, score_4, score_5, score_6, score_7, score_8, score_9, score_10, score_11')
+                .select('id, student_group, deliverable_type, metro_station, title, user_email, pdf_url, created_at, score_1, score_2, score_3, score_4, score_5, score_6, score_7, score_8, score_9, score_10, score_11, score_12')
                 .order('created_at', { ascending: false });
 
             if (error || !data || data.length === 0) {
